@@ -20,7 +20,7 @@ class Classifier:
             raise ValueError("invalid classifier type")
 
         if imputer_type == "miss_forest" or imputer_type == "mf":
-            self.imputer = MissForest()
+            self.imputer = MissForest(max_iter=1)  # TODO
         else:
             raise ValueError("invalid imputer type")
 
@@ -29,11 +29,14 @@ class Classifier:
 
     def train(self, X, Y, incomplete=True):
         _X = np.copy(X)
+        self.imputer.fit(_X, y=Y, cat_vars=self._categorical)
         if incomplete:
             _X = self._impute_missing(_X)
+        else:
+            self._train_rfs(_X, _X)
         return self._clf.fit(_X, Y)
 
-    def next_features(self, X, method="leu"):
+    def next_features(self, X, method):
         """
         :param method: the method to be used to calculate the index of the next feature to learn.
         :param X: (num_examples, num_features) with missing features as np.nan.
@@ -52,7 +55,7 @@ class Classifier:
         elif method is "leu":
             _X = np.copy(X)
             _X = self._impute_missing(_X)
-            uncert_matrix = np.ones(_X.shape)
+            expected_uncert_matrix = np.ones(_X.shape)
             for j in range(_X.shape[1]):
                 out = self._random_forests[j].apply(np.concatenate([_X[:, :j], _X[:, j + 1:]], axis=1))
                 for i in range(X.shape[0]):
@@ -65,11 +68,13 @@ class Classifier:
                         for c, v in f_counts.items():
                             x = _X[i, :]
                             x[j] = c
+                            # TODO instead of p do E[p|j,Known features] here
+                            # expected_p = self._expected_prob(x)
                             cls_probs = self.predict(x.reshape((1, len(x))), incomplete=False)[0]
                             num += v * calc_uncertainty(cls_probs)
                             den += v
-                        uncert_matrix[i, j] = num / den
-            next_features = [argmin(x) for x in uncert_matrix]
+                        expected_uncert_matrix[i, j] = num / den
+            next_features = [argmin(x) for x in expected_uncert_matrix]
         else:
             raise ValueError("Incorrect method name")
         return next_features
@@ -92,9 +97,9 @@ class Classifier:
         :param _X: (num_examples, num_features) with missing features as np.nan.
         :return: nothing
         """
-        X_imputed = self.imputer.fit_transform(_X, cat_vars=self._categorical)
+        X_imputed = self.imputer.transform(_X)
         if self._random_forests is None:
-            self._train_rfs(X_imputed)
+            self._train_rfs(X_imputed, _X)
         for j in range(_X.shape[1]):
             out = np.zeros(_X.shape)
             out[:, j] = self._random_forests[j].predict(
@@ -107,15 +112,24 @@ class Classifier:
             _X = _X + out
         return _X
 
-    def _train_rfs(self, _X):
+    def _train_rfs(self, _X_imputed, _X):
         """
         trains the list of rf for each feature given the other features.
-        :param _X: (num_examples, num_features) without any missing features.
+        :param _X_imputed: (num_examples, num_features) without any missing features.
         :return: nothing
         """
         rfs = []
-        for j in range(_X.shape[1]):
+        for j in range(_X_imputed.shape[1]):
             clf = RandomForestClassifier()
-            clf.fit(np.concatenate([_X[:, :j], _X[:, j + 1:]], axis=1), _X[:, j])
+            _X_without_nan = []
+            for i in range(_X_imputed.shape[0]):
+                if not np.isnan(_X[i, j]):
+                    _X_without_nan.append(_X_imputed[i, :])
+            _X_without_nan = np.array(_X_without_nan)
+            clf.fit(np.concatenate([_X_without_nan[:, :j], _X_without_nan[:, j + 1:]], axis=1), _X_without_nan[:, j])
             rfs.append(clf)
         self._random_forests = rfs
+
+    # def _expected_prob(self, x):  # TODO
+    #     # impute randomly for the other features
+

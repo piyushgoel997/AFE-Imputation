@@ -1,6 +1,6 @@
 import argparse
 import random
-import sys
+import sys  # TODO
 import time
 import warnings
 from collections import Counter
@@ -11,7 +11,7 @@ from Classifier import Classifier
 
 warnings.filterwarnings("ignore")
 
-NUM_EXPERIMENTS = 10
+NUM_EXPERIMENTS = 1  # TODO
 CLASSIFIER_TYPE = "nn"
 
 
@@ -47,7 +47,9 @@ if __name__ == "__main__":
     parser.add_argument('--data')
     args = parser.parse_args()
 
-    sys.stdout = open("logs/" + args.data + ".txt", "w")
+    args.data = "car_0"  # TODO
+
+    # sys.stdout = open("logs/" + args.data + ".txt", "w")  # TODO
 
     # load data
     data = np.load("data/" + args.data + ".npy", allow_pickle=True)
@@ -127,3 +129,87 @@ if __name__ == "__main__":
     print("total time taken = {:.5f}".format(time.time() - start_time))
     print("Class counts in the data", Counter(list(data[:, -1])))
     print("Number of total instances =", data.shape[0], "\nNumber of attributes =", data.shape[1])
+
+# TODO
+# ==========================================================
+# Complete data! Remove ratio = 0.25
+#
+# Averaged Accuracies ->
+# No sampling = 0.89740
+# Random selection = 0.89740
+# Least Expected Uncertainty = 0.91243
+#
+# Averaged sampling times ->
+# No sampling = 0.00000
+# Random selection = 0.00003
+# Least Expected Uncertainty = 0.10272
+# ==========================================================
+# Incomplete data! Remove ratio = 0.25
+#
+# Averaged Accuracies ->
+# No sampling = 0.87341
+# Random selection = 0.87428
+# Least Expected Uncertainty = 0.88642
+#
+# Averaged sampling times ->
+# No sampling = 0.00000
+# Random selection = 0.00003
+# Least Expected Uncertainty = 0.09738
+# ==========================================================
+# ==========================================================
+# Complete data! Remove ratio = 0.5
+#
+# Averaged Accuracies ->
+# No sampling = 0.77225
+# Random selection = 0.76965
+# Least Expected Uncertainty = 0.78931
+#
+# Averaged sampling times ->
+# No sampling = 0.00000
+# Random selection = 0.00002
+# Least Expected Uncertainty = 0.09819
+# ==========================================================
+# Incomplete data! Remove ratio = 0.5
+#
+# Averaged Accuracies ->
+# No sampling = 0.76012
+# Random selection = 0.76040
+# Least Expected Uncertainty = 0.77832
+#
+# Averaged sampling times ->
+# No sampling = 0.00000
+# Random selection = 0.00002
+# Least Expected Uncertainty = 0.10394
+# ==========================================================
+# ==========================================================
+# Complete data! Remove ratio = 0.75
+#
+# Averaged Accuracies ->
+# No sampling = 0.70751
+# Random selection = 0.69942
+# Least Expected Uncertainty = 0.72717
+#
+# Averaged sampling times ->
+# No sampling = 0.00000
+# Random selection = 0.00002
+# Least Expected Uncertainty = 0.11306
+# ==========================================================
+# Incomplete data! Remove ratio = 0.75
+#
+# Averaged Accuracies ->
+# No sampling = 0.71156
+# Random selection = 0.71156
+# Least Expected Uncertainty = 0.72081
+#
+# Averaged sampling times ->
+# No sampling = 0.00000
+# Random selection = 0.00002
+# Least Expected Uncertainty = 0.09699
+# ==========================================================
+# ==========================================================
+# Accuracy with complete data = 0.97543
+# Accuracy of trivial classifier = 0.74016
+# total time taken = 9675.18560
+# Class counts in the data Counter({1.0: 1279, 0.0: 449})
+# Number of total instances = 1728
+# Number of attributes = 22
