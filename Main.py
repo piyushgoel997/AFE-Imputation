@@ -15,11 +15,13 @@ warnings.filterwarnings("ignore")
 
 class Exp:
 
-    def __init__(self, ):
+    def __init__(self, uncertainty_measure):
         self.NUM_EXPERIMENTS = 10
         self.MAX_TEST_POINTS = 500
         self.CLASSIFIER_TYPE = "nn"
         self.remove_ratios = [0.25, 0.50, 0.75]
+        self.uncertainty_measure = uncertainty_measure.split("*")[0]
+        self.set_alpha = len(uncertainty_measure.split("*")) == 2
 
     def remove_data(self, X, r):
         _X = np.copy(X)
@@ -53,7 +55,8 @@ class Exp:
         X_test_complete = data[max(int(0.8 * len(data)), len(data) - self.MAX_TEST_POINTS):, :-1]
         Y_test = data[max(int(0.8 * len(data)), len(data) - self.MAX_TEST_POINTS):, -1]
 
-        c_clf = Classifier(self.CLASSIFIER_TYPE, categorical=list(range(X_train_complete.shape[1])))
+        c_clf = Classifier(self.CLASSIFIER_TYPE, categorical=list(range(X_train_complete.shape[1])),
+                           uncertainty_measure=self.uncertainty_measure, set_alpha=self.set_alpha)
         c_clf.train(X_train_complete, Y_train, incomplete=False)
         complete_accuracy = c_clf.test(X_test_complete, Y_test, incomplete=False)
 
@@ -80,6 +83,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data')
     parser.add_argument('--clf', default="nn")
+    parser.add_argument('--um', default="confidence")
     args = parser.parse_args()
 
     # args.data = "car_0"
@@ -90,7 +94,7 @@ if __name__ == "__main__":
     data = np.load("data/" + args.data + ".npy", allow_pickle=True)
     print("data loaded")
 
-    exp = Exp()
+    exp = Exp(args.um)
     acc = np.zeros((len(exp.remove_ratios), 6))
     sampling_times = np.zeros((len(exp.remove_ratios), 6))
     start_time = time.time()
