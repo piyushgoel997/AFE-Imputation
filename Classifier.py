@@ -11,7 +11,13 @@ from Utils import argmax, calc_uncertainty, argmin
 
 
 class Classifier:
-    def __init__(self, type, categorical=None, imputer_type="mf", uncertainty_measure="confidence"):
+    def __init__(self, type, categorical=None, imputer_type="mf", uncertainty_measure="confidence", set_alpha=False):
+        self._random_forests = None
+        self._categorical = categorical
+        self._uncertainty_measure = uncertainty_measure
+        self._alpha = 0.5
+        self._set_alpha = set_alpha
+        self._num_forests = 10
         if type == "decision_tree" or type == "dt":
             self._clf = DecisionTreeClassifier()
         elif type == "neural_network" or type == "nn":
@@ -20,23 +26,20 @@ class Classifier:
             raise ValueError("invalid classifier type")
 
         if imputer_type == "miss_forest" or imputer_type == "mf":
-            self.imputer = MissForest(max_iter=1)  # TODO
+            self.imputers = [MissForest() for _ in range(self._num_forests)]
         else:
             raise ValueError("invalid imputer type")
 
-        self._random_forests = None
-        self._categorical = categorical
-        self._uncertainty_measure = uncertainty_measure
-        self._alpha = 0.5
-
     def train(self, X, Y, incomplete=True):
         _X = np.copy(X)
-        self.imputer.fit(_X, cat_vars=self._categorical)
+        for imp in self.imputers:
+            imp.fit(_X, cat_vars=self._categorical)
         if incomplete:
             _X = self._impute_missing(_X)
         else:
             self._train_rfs(_X, _X)
-        self._alpha = np.sum(Y) / len(Y)
+        if self._set_alpha:
+            self._alpha = np.sum(Y) / len(Y)
         return self._clf.fit(_X, Y)
 
     def next_features(self, X, method):
@@ -56,28 +59,30 @@ class Classifier:
                     print("already know all features")
                     next_features.append(0)
         elif method is "leu":
-            _X = np.copy(X)
-            _X = self._impute_missing(_X)
-            expected_uncert_matrix = np.ones(_X.shape)
-            for j in range(_X.shape[1]):
-                out = self._random_forests[j].apply(np.concatenate([_X[:, :j], _X[:, j + 1:]], axis=1))
-                for i in range(X.shape[0]):
-                    if np.isnan(X[i, j]):
-                        # TODO adjust for real valued features
-                        f_counts = Counter([argmax(est.tree_.value[k][0])
-                                            for k, est in zip(out[i], self._random_forests[j].estimators_)])
-                        num = 0
-                        den = 0
-                        for c, v in f_counts.items():
-                            _x = _X[i, :]
-                            _x[j] = c
-                            x = X[i, :]
-                            x[j] = c
-                            expected_p = self._expected_prob(_x, x)
-                            # cls_probs = self.predict(_x.reshape((1, len(_x))), incomplete=False)[0]
-                            num += v * calc_uncertainty(expected_p, method=self._uncertainty_measure, alpha=self._alpha)
-                            den += v
-                        expected_uncert_matrix[i, j] = num / den
+            expected_uncert_matrix = self._num_forests*np.ones(X.shape)
+            for k in range(self._num_forests):
+                _X = np.copy(X)
+                _X = self._impute_missing(_X, i=k)
+                for j in range(_X.shape[1]):
+                    out = self._random_forests[j].apply(np.concatenate([_X[:, :j], _X[:, j + 1:]], axis=1))
+                    for i in range(X.shape[0]):
+                        if np.isnan(X[i, j]):
+                            # TODO adjust for real valued features
+                            f_counts = Counter([argmax(est.tree_.value[k][0])
+                                                for k, est in zip(out[i], self._random_forests[j].estimators_)])
+                            num = 0
+                            den = 0
+                            for c, v in f_counts.items():
+                                _x = _X[i, :]
+                                _x[j] = c
+                                x = X[i, :]
+                                x[j] = c
+                                expected_p = self._expected_prob(_x, x)
+                                # cls_probs = self.predict(_x.reshape((1, len(_x))), incomplete=False)[0]
+                                num += v * calc_uncertainty(expected_p, method=self._uncertainty_measure, alpha=self._alpha)
+                                den += v
+                            expected_uncert_matrix[i, j] = num / den
+            expected_uncert_matrix /= self._num_forests
             next_features = [argmin(x) for x in expected_uncert_matrix]
         else:
             raise ValueError("Incorrect method name")
@@ -95,13 +100,13 @@ class Classifier:
             _X = self._impute_missing(_X)
         return self._clf.score(_X, Y)
 
-    def _impute_missing(self, _X):
+    def _impute_missing(self, _X, i=0):
         """
         imputes the missing values in the input matrix
         :param _X: (num_examples, num_features) with missing features as np.nan.
         :return: nothing
         """
-        X_imputed = self.imputer.transform(_X)
+        X_imputed = self.imputers[0].transform(_X)
         if self._random_forests is None:
             self._train_rfs(X_imputed, _X)
         for j in range(_X.shape[1]):
@@ -136,7 +141,7 @@ class Classifier:
 
     def _expected_prob(self, _x, x):
         # impute randomly for the other features
-        _X = np.zeros((100, len(x)))  # TODO
+        _X = np.zeros((10, len(x)))  # TODO
         for j in range(_X.shape[1]):
             if not np.isnan(x[j]):
                 continue
