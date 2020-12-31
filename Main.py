@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     # args.data = "car_0"
     CLASSIFIER_TYPE = args.clf
-    sys.stdout = open("logs/" + args.data + ".txt", "w")
+    sys.stdout = open("logs/" + args.data + "_" + args.clf + "_" + args.um + ".txt", "w")
 
     # load data
     data = np.load("data/" + args.data + ".npy", allow_pickle=True)
