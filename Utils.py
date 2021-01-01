@@ -12,14 +12,13 @@ def argmin(l):
 def calc_uncertainty(predictions, alpha=0.5, method="confidence"):
     p = predictions[1]
     p = math.pow(p, -math.log(2, alpha))
-    uncert = 1
-    if method is "confidence":
+    if method == "confidence":
         uncert = 1 - abs(1 - 2 * p)
-    elif method is "variance":
+    elif method == "variance":
         uncert = p * (1 - p)
-    elif method is "entropy":
+    elif method == "entropy":
         uncert = p * math.log(p) + (1 - p) * math.log(1 - p)
     else:
         print("The method name is", method)
-        raise ValueError("Incorrect method")
+        raise ValueError("Incorrect uncertainty method")
     return uncert
