@@ -35,6 +35,7 @@ class Exp:
         a = []
         s = []
         for method in ["random", "leu"]:
+            print(method, "started")
             _X = np.copy(X_test)
             t = time.time()
             learn_idx = clf.next_features(X_test, method=method)
@@ -42,6 +43,7 @@ class Exp:
             for i, j in enumerate(learn_idx):
                 _X[i, j] = X_test_complete[i, j]
             a.append(clf.test(_X, Y_test))
+            print(method, "ended")
         # no sampling
         a.append(clf.test(X_test, Y_test))
         s.append(0)
@@ -64,6 +66,7 @@ class Exp:
         sampling_times = np.zeros((len(self.remove_ratios), 6))
 
         for j, r in enumerate(self.remove_ratios):
+            print("Starting exp for remove ratio", r)
             X_test = self.remove_data(X_test_complete, r)
             ac, sc = self.run_exp(X_test, X_test_complete, Y_test, c_clf)
             ############################################################################################
@@ -112,6 +115,8 @@ if __name__ == "__main__":
         sampling_times += s
         complete_accuracy += ca
     pool.close()
+
+    print("Experiments finished")
 
     for i in range(len(exp.remove_ratios)):
         acc[i] /= exp.NUM_EXPERIMENTS
