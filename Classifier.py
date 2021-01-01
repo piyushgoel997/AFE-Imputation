@@ -23,6 +23,7 @@ class Classifier:
         elif type == "neural_network" or type == "nn":
             self._clf = MLPClassifier()
         else:
+            print("The type is", type)
             raise ValueError("invalid classifier type")
 
         if imputer_type == "miss_forest" or imputer_type == "mf":
@@ -59,7 +60,7 @@ class Classifier:
                     print("already know all features")
                     next_features.append(0)
         elif method is "leu":
-            expected_uncert_matrix = self._num_forests*np.ones(X.shape)
+            expected_uncert_matrix = self._num_forests * np.ones(X.shape)
             for k in range(self._num_forests):
                 _X = np.copy(X)
                 _X = self._impute_missing(_X, i=k)
@@ -79,7 +80,8 @@ class Classifier:
                                 x[j] = c
                                 expected_p = self._expected_prob(_x, x)
                                 # cls_probs = self.predict(_x.reshape((1, len(_x))), incomplete=False)[0]
-                                num += v * calc_uncertainty(expected_p, method=self._uncertainty_measure, alpha=self._alpha)
+                                num += v * calc_uncertainty(expected_p, method=self._uncertainty_measure,
+                                                            alpha=self._alpha)
                                 den += v
                             expected_uncert_matrix[i, j] = num / den
             expected_uncert_matrix /= self._num_forests

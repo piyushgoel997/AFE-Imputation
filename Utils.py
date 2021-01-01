@@ -20,5 +20,6 @@ def calc_uncertainty(predictions, alpha=0.5, method="confidence"):
     elif method is "entropy":
         uncert = p * math.log(p) + (1 - p) * math.log(1 - p)
     else:
+        print("The method name is", method)
         raise ValueError("Incorrect method")
     return uncert
