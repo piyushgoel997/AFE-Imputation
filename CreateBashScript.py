@@ -30,7 +30,7 @@ if __name__ == "__main__":
                           "#SBATCH --job-name=" + n + "\n" \
                           "#SBATCH --partition=short\n" \
                           "#SBATCH --mem=" + mem + "\n" \
-                          "#SBATCH -o job_log/" + n + "-%j\n" \
+                          "#SBATCH -o job_logs/" + n + "-%j\n" \
                           "\n" \
                           "module purge\n" \
                           "module load python/3.7.1 anaconda3/3.7\n" \
@@ -42,6 +42,6 @@ if __name__ == "__main__":
                 f.write(command)
 
     for i in range(0, len(names), 12):
-        f = open("batch_scripts/run_all_" + str(i % 12), 'w')
+        f = open("batch_scripts/run_all_" + str(i / 12), 'w')
         f.write("sbatch ")
         f.write("\nsbatch ".join(names[i: i + 12]))
