@@ -30,6 +30,8 @@ if __name__ == "__main__":
                           "#SBATCH --job-name=" + n + "\n" \
                           "#SBATCH --partition=short\n" \
                           "#SBATCH --mem=" + mem + "\n" \
+                          "#SBATCH --mail-user=goel.pi@northeastern.edu\n" \
+                          "#SBATCH --mail-type=END\n" \
                           "#SBATCH -o job_logs/" + n + "-%j\n" \
                           "\n" \
                           "module purge\n" \
@@ -37,11 +39,10 @@ if __name__ == "__main__":
                           "\n" \
                           "srun python Main.py" + " --data " + a + " --um " + b + " --clf " + c
 
-                f = open("batch_scripts/single/" + n, 'w')
-                names.append("batch_scripts/single/" + n)
+                f = open("scripts/" + n, 'w')
+                names.append("scripts/" + n)
                 f.write(command)
 
-    for i in range(0, len(names), 12):
-        f = open("batch_scripts/run_all_" + str(i / 12), 'w')
-        f.write("sbatch ")
-        f.write("\nsbatch ".join(names[i: i + 12]))
+    f = open("run_all", 'w')
+    f.write("sbatch ")
+    f.write("\nsbatch ".join(names))
