@@ -9,7 +9,7 @@ if __name__ == "__main__":
     path = args.path
 
     c1 = set([str(f).split(".")[0] for f in listdir(path)
-              if isfile(join(path, f)) and "log" not in f and "fc" not in f])
+              if isfile(join(path, f)) and "log.txt" not in f and "fc" not in f])
     c2 = ["confidence", "variance", "entropy", "confidence*", "variance*", "entropy*"]
     c3 = ["nn", "dt"]
     names = []
