@@ -4,6 +4,7 @@ import sys
 import time
 import warnings
 from collections import Counter
+from multiprocessing import Pool
 
 import numpy as np
 
@@ -14,21 +15,22 @@ warnings.filterwarnings("ignore")
 
 class Exp:
 
-    def __init__(self, data, uncertainty_measure):
-        self.data = data
+    def __init__(self, uncertainty_measure, feature_cols):
         self.NUM_EXPERIMENTS = 10
         self.MAX_TEST_POINTS = 500
         self.CLASSIFIER_TYPE = "nn"
         self.remove_ratios = [0.25, 0.5, 0.75]
         self.uncertainty_measure = uncertainty_measure.split("*")[0]
         self.set_alpha = len(uncertainty_measure.split("*")) == 2
+        self.feature_cols = feature_cols
 
     def remove_data(self, X, r):
         _X = np.copy(X)
         for i in range(_X.shape[0]):
-            for j in range(_X.shape[1]):
+            for j in range(len(self.feature_cols) - 1):
                 if random.random() < r:
-                    _X[i, j] = np.nan
+                    for i_ in range(self.feature_cols[j], self.feature_cols[j + 1]):
+                        _X[i, i_] = np.nan
         return _X
 
     def run_exp(self, X_test, X_test_complete, Y_test, clf):
@@ -49,13 +51,13 @@ class Exp:
         s.append(0)
         return a, s
 
-    def one_exp(self):
-        np.random.shuffle(self.data)
-        X_train_complete = self.data[:int(0.8 * len(self.data)), :-1]
-        Y_train = self.data[:int(0.8 * len(self.data)), -1]
+    def one_exp(self, data):
+        np.random.shuffle(data)
+        X_train_complete = data[:int(0.8 * len(data)), :-1]
+        Y_train = data[:int(0.8 * len(data)), -1]
 
-        X_test_complete = self.data[max(int(0.8 * len(self.data)), len(self.data) - self.MAX_TEST_POINTS):, :-1]
-        Y_test = self.data[max(int(0.8 * len(self.data)), len(self.data) - self.MAX_TEST_POINTS):, -1]
+        X_test_complete = data[max(int(0.8 * len(data)), len(data) - self.MAX_TEST_POINTS):, :-1]
+        Y_test = data[max(int(0.8 * len(data)), len(data) - self.MAX_TEST_POINTS):, -1]
 
         c_clf = Classifier(self.CLASSIFIER_TYPE, categorical=list(range(X_train_complete.shape[1])),
                            uncertainty_measure=self.uncertainty_measure, set_alpha=self.set_alpha)
@@ -76,7 +78,6 @@ class Exp:
             X_train = self.remove_data(X_train_complete, r)
             clf = Classifier(self.CLASSIFIER_TYPE, categorical=list(range(X_train_complete.shape[1])))
             clf.train(X_train, Y_train)
-            X_test = self.remove_data(X_test_complete, r)
             ai, si = self.run_exp(X_test, X_test_complete, Y_test, clf)
             print("Incomplete data finished in", time.time() - t1)
             print(r, ac, sc, ai, si)
@@ -90,6 +91,9 @@ if __name__ == "__main__":
     parser.add_argument('--data')
     parser.add_argument('--clf', default="nn")
     parser.add_argument('--um', default="confidence")
+    parser.add_argument('--parallel', dest='parallel', action='store_true')
+    parser.add_argument('--no-parallel', dest='parallel', action='store_false')
+    parser.set_defaults(parallel=True)
     args = parser.parse_args()
 
     start_time = time.time()
@@ -100,24 +104,33 @@ if __name__ == "__main__":
 
     # load data
     data = np.load("data/" + args.data + ".npy", allow_pickle=True)
+    feature_cols = np.load("data/" + args.data + "_fc.npy")
     print("Data loaded in", time.time() - start_time)
 
-    exp = Exp(data, args.um)
+    exp = Exp(args.um, feature_cols)
     acc = np.zeros((len(exp.remove_ratios), 6))
     sampling_times = np.zeros((len(exp.remove_ratios), 6))
 
     complete_accuracy = 0
 
     print("Starting experiments")
-    t = time.time()
-    for i in range(exp.NUM_EXPERIMENTS):
-        a, s, ca = exp.one_exp()
+
+    exp_list = []
+    for _ in range(exp.NUM_EXPERIMENTS):
+        exp_list.append(np.copy(data))
+
+    if args.parallel:
+        pool = Pool(10)
+        res = pool.map_async(exp.one_exp, exp_list).get()
+    else:
+        res = map(exp.one_exp, exp_list)
+
+    for r in res:
+        a, s, ca = r
         acc += a
         sampling_times += s
         complete_accuracy += ca
-        print("Experiment", i, "finished in", time.time() - t)
         t = time.time()
-
     print("Experiments finished")
 
     for i in range(len(exp.remove_ratios)):
@@ -126,7 +139,7 @@ if __name__ == "__main__":
     complete_accuracy /= exp.NUM_EXPERIMENTS
     for a, s, r in zip(acc, sampling_times, exp.remove_ratios):
         print("==========================================================")
-        print("Complete data! Remove ratio =", r)
+        print("Complete training data! Remove ratio =", r)
         print()
         print("Averaged Accuracies ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
               "Least Expected Uncertainty = {:.5f}".format(a[2], a[0], a[1]))
@@ -134,7 +147,7 @@ if __name__ == "__main__":
         print("Averaged sampling times ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
               "Least Expected Uncertainty = {:.5f}".format(s[2], s[0], s[1]))
         print("==========================================================")
-        print("Incomplete data! Remove ratio =", r)
+        print("Incomplete training data! Remove ratio =", r)
         print()
         print("Averaged Accuracies ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
               "Least Expected Uncertainty = {:.5f}".format(a[5], a[3], a[4]))
@@ -148,4 +161,4 @@ if __name__ == "__main__":
         max(sum(data[:, -1]) / len(data[:, -1]), (len(data[:, -1]) - sum(data[:, -1])) / len(data[:, -1]))))
     print("total time taken = {:.5f}".format(time.time() - start_time))
     print("Class counts in the data", Counter(list(data[:, -1])))
-    print("Number of total instances =", data.shape[0], "\nNumber of attributes =", data.shape[1])
+    print("Number of total instances =", data.shape[0], "\nNumber of attributes =", (data.shape[1] - 1))
