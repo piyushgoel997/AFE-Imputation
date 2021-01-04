@@ -38,7 +38,7 @@ if __name__ == "__main__":
                           "srun python Main.py" + " --data " + a + " --um " + b + " --clf " + c
 
                 f = open("batch_scripts/single/" + n, 'w')
-                names.append("single/" + n)
+                names.append("batch_scripts/single/" + n)
                 f.write(command)
 
     for i in range(0, len(names), 12):
