@@ -51,7 +51,7 @@ class Classifier:
         """
         # while calculating for one unknown feature I use the imputed value for the other unknown features.
         next_features = []
-        if method is "random":
+        if method == "random":
             for _x in X:
                 p = [a[0] for a in np.argwhere(~np.isnan(_x))]
                 try:
@@ -59,7 +59,7 @@ class Classifier:
                 except:
                     print("already know all features")
                     next_features.append(0)
-        elif method is "leu":
+        elif method == "leu":
             expected_uncert_matrix = self._num_forests * np.ones(X.shape)
             for k in range(self._num_forests):
                 _X = np.copy(X)
