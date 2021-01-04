@@ -17,11 +17,13 @@ if __name__ == "__main__":
         for b in c2:
             for c in c3:
                 n = a + "_" + b[:-6] + "_" + c
-                mem = "10G"
+                # mem = "10G"
+                mem = "100G"
                 if "adult" in n or "avila" in n or "bank" in n:
-                    mem = "100G"
-                if "frogs" in n or "mushroom" in n or "shill" in n or "wine" in n or "spam" in n:
-                    mem = "20G"
+                    # mem = "100G"
+                    mem = "200G"
+                # if "frogs" in n or "mushroom" in n or "shill" in n or "wine" in n or "spam" in n:
+                #     mem = "20G"
                 command = "#!/bin/bash\n" \
                           "#SBATCH --time=24:00:00\n" \
                           "#SBATCH -n 10\n" \
@@ -35,10 +37,11 @@ if __name__ == "__main__":
                           "\n" \
                           "srun python Main.py" + " --data " + a + " --um " + b + " --clf " + c
 
-                f = open("batch/" + n, 'w')
-                names.append("batch/" + n)
+                f = open("batch_scripts/single/" + n, 'w')
+                names.append("single/" + n)
                 f.write(command)
 
-    f = open("run_all", 'w')
-    f.write("sbatch ")
-    f.write("\nsbatch ".join(names))
+    for i in range(0, len(names), 12):
+        f = open("batch_scripts/run_all_" + str(i % 12), 'w')
+        f.write("sbatch ")
+        f.write("\nsbatch ".join(names[i: i + 12]))
