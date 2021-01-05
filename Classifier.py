@@ -37,7 +37,7 @@ class Classifier:
             raise ValueError("invalid classifier type")
 
         if imputer_type == "miss_forest" or imputer_type == "mf":
-            self.imputer = MissForest(max_iter=1)  # TODO
+            self.imputer = MissForest()
         else:
             raise ValueError("invalid imputer type")
 
