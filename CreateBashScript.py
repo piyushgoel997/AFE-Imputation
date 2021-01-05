@@ -25,7 +25,7 @@ if __name__ == "__main__":
                           "#SBATCH --mem=" + mem + "\n" \
                           "#SBATCH --mail-user=goel.pi@northeastern.edu\n" \
                           "#SBATCH --mail-type=END\n" \
-                          "#SBATCH -o job_logs/" + n + "-%j\n" \
+                          "#SBATCH -o job_logs/%j" + n + "\n" \
                           "\n" \
                           "module purge\n" \
                           "module load python/3.7.1 anaconda3/3.7\n" \
