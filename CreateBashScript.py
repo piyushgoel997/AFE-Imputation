@@ -16,13 +16,7 @@ if __name__ == "__main__":
         for b in c2:
             for c in c3:
                 n = a + "_" + b[:-6] + "_" + c
-                # mem = "10G"
-                mem = "100G"
-                if "adult" in n or "avila" in n or "bank" in n:
-                    # mem = "100G"
-                    mem = "200G"
-                # if "frogs" in n or "mushroom" in n or "shill" in n or "wine" in n or "spam" in n:
-                #     mem = "20G"
+                mem = "500G"
                 command = "#!/bin/bash\n" \
                           "#SBATCH --time=24:00:00\n" \
                           "#SBATCH -n 10\n" \
