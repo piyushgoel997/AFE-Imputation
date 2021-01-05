@@ -1,6 +1,5 @@
 import argparse
 import random
-import sys
 import time
 import warnings
 from collections import Counter
@@ -15,14 +14,14 @@ warnings.filterwarnings("ignore")
 
 class Exp:
 
-    def __init__(self, uncertainty_measure, feature_cols):
-        self.NUM_EXPERIMENTS = 10
-        self.MAX_TEST_POINTS = 500
+    def __init__(self, uncertainty_measure, feature_cols_):
+        self.NUM_EXPERIMENTS = 1  # TODO
+        self.MAX_TEST_POINTS = 50  # TODO
         self.CLASSIFIER_TYPE = "nn"
         self.remove_ratios = [0.25, 0.5, 0.75]
         self.uncertainty_measure = uncertainty_measure.split("*")[0]
         self.set_alpha = len(uncertainty_measure.split("*")) == 2
-        self.feature_cols = feature_cols
+        self.feature_cols = feature_cols_
 
     def remove_data(self, X, r):
         _X = np.copy(X)
@@ -34,61 +33,61 @@ class Exp:
         return _X
 
     def run_exp(self, X_test, X_test_complete, Y_test, clf):
-        a = []
-        s = []
+        A = []
+        S = []
         for method in ["random", "leu"]:
             print(method, "started")
             _X = np.copy(X_test)
-            t = time.time()
-            learn_idx = clf.next_features(X_test, method=method)
-            s.append((time.time() - t) / len(_X))
-            for i, j in enumerate(learn_idx):
-                _X[i, j] = X_test_complete[i, j]
-            a.append(clf.test(_X, Y_test))
+            tt = time.time()
+            learn_idx = clf.next_features(_X, method=method)
+            S.append((time.time() - tt) / len(_X))
+            for i_, j in enumerate(learn_idx):
+                _X[i_, j] = X_test_complete[i_, j]
+            A.append(clf.test_accuracy(_X, Y_test))
             print(method, "ended")
         # no sampling
-        a.append(clf.test(X_test, Y_test))
-        s.append(0)
-        return a, s
+        A.append(clf.test_accuracy(X_test, Y_test))
+        S.append(0)
+        return A, S
 
-    def one_exp(self, data):
-        np.random.shuffle(data)
-        X_train_complete = data[:int(0.8 * len(data)), :-1]
-        Y_train = data[:int(0.8 * len(data)), -1]
+    def one_exp(self, data_exp):
+        np.random.shuffle(data_exp)
+        X_train_complete = data_exp[:int(0.8 * len(data_exp)), :-1]
+        Y_train = data_exp[:int(0.8 * len(data_exp)), -1]
 
-        X_test_complete = data[max(int(0.8 * len(data)), len(data) - self.MAX_TEST_POINTS):, :-1]
-        Y_test = data[max(int(0.8 * len(data)), len(data) - self.MAX_TEST_POINTS):, -1]
+        X_test_complete = data_exp[max(int(0.8 * len(data_exp)), len(data_exp) - self.MAX_TEST_POINTS):, :-1]
+        Y_test = data_exp[max(int(0.8 * len(data_exp)), len(data_exp) - self.MAX_TEST_POINTS):, -1]
 
-        c_clf = Classifier(self.CLASSIFIER_TYPE, categorical=list(range(X_train_complete.shape[1])),
+        c_clf = Classifier(self.CLASSIFIER_TYPE, categorical=[True] * X_train_complete.shape[1],
                            uncertainty_measure=self.uncertainty_measure, set_alpha=self.set_alpha)
         c_clf.train(X_train_complete, Y_train, incomplete=False)
-        complete_accuracy = c_clf.test(X_test_complete, Y_test, incomplete=False)
+        complete_accuracy_exp = c_clf.test_accuracy(X_test_complete, Y_test, incomplete=False)
 
-        acc = np.zeros((len(self.remove_ratios), 6))
-        sampling_times = np.zeros((len(self.remove_ratios), 6))
+        acc_exp = np.zeros((len(self.remove_ratios), 6))
+        sampling_times_exp = np.zeros((len(self.remove_ratios), 6))
 
-        for j, r in enumerate(self.remove_ratios):
-            print("Starting exp for remove ratio", r)
+        for j, rr in enumerate(self.remove_ratios):
+            print("Starting exp for remove ratio", rr)
             t1 = time.time()
-            X_test = self.remove_data(X_test_complete, r)
+            X_test = self.remove_data(X_test_complete, rr)
             ac, sc = self.run_exp(X_test, X_test_complete, Y_test, c_clf)
             print("Complete data finished in", time.time() - t1)
             t1 = time.time()
             ############################################################################################
-            X_train = self.remove_data(X_train_complete, r)
-            clf = Classifier(self.CLASSIFIER_TYPE, categorical=list(range(X_train_complete.shape[1])))
+            X_train = self.remove_data(X_train_complete, rr)
+            clf = Classifier(self.CLASSIFIER_TYPE, categorical=[True] * X_train_complete.shape[1])
             clf.train(X_train, Y_train)
             ai, si = self.run_exp(X_test, X_test_complete, Y_test, clf)
             print("Incomplete data finished in", time.time() - t1)
-            print(r, ac, sc, ai, si)
-            acc[j] = np.array(ac + ai)
-            sampling_times[j] = np.array(sc + si)
-        return acc, sampling_times, complete_accuracy
+            print(rr, ac, sc, ai, si)
+            acc_exp[j] = np.array(ac + ai)
+            sampling_times_exp[j] = np.array(sc + si)
+        return acc_exp, sampling_times_exp, complete_accuracy_exp
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data')
+    parser.add_argument('--data', default="car_0")
     parser.add_argument('--clf', default="nn")
     parser.add_argument('--um', default="confidence")
     parser.add_argument('--parallel', dest='parallel', action='store_true')
@@ -100,7 +99,7 @@ if __name__ == "__main__":
 
     # args.data = "car_0"
     CLASSIFIER_TYPE = args.clf
-    sys.stdout = open("logs/" + args.data + "_" + args.clf + "_" + args.um + ".txt", "w")
+    # sys.stdout = open("logs/" + args.data + "_" + args.clf + "_" + args.um + ".txt", "w")  # TODO
 
     # load data
     data = np.load("data/" + args.data + ".npy", allow_pickle=True)
