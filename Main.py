@@ -14,22 +14,21 @@ warnings.filterwarnings("ignore")
 
 class Exp:
 
-    def __init__(self, uncertainty_measure, feature_cols_):
-        self.NUM_EXPERIMENTS = 1  # TODO
-        self.MAX_TEST_POINTS = 50  # TODO
+    def __init__(self, uncertainty_measure, categorical_):
+        self.NUM_EXPERIMENTS = 10
+        self.MAX_TEST_POINTS = 500
         self.CLASSIFIER_TYPE = "nn"
         self.remove_ratios = [0.25, 0.5, 0.75]
         self.uncertainty_measure = uncertainty_measure.split("*")[0]
         self.set_alpha = len(uncertainty_measure.split("*")) == 2
-        self.feature_cols = feature_cols_
+        self.categorical = categorical_
 
     def remove_data(self, X, r):
         _X = np.copy(X)
         for i in range(_X.shape[0]):
-            for j in range(len(self.feature_cols) - 1):
+            for j in range(len(_X.shape[1])):
                 if random.random() < r:
-                    for i_ in range(self.feature_cols[j], self.feature_cols[j + 1]):
-                        _X[i, i_] = np.nan
+                    _X[i, j] = np.nan
         return _X
 
     def run_exp(self, X_test, X_test_complete, Y_test, clf):
@@ -58,7 +57,7 @@ class Exp:
         X_test_complete = data_exp[max(int(0.8 * len(data_exp)), len(data_exp) - self.MAX_TEST_POINTS):, :-1]
         Y_test = data_exp[max(int(0.8 * len(data_exp)), len(data_exp) - self.MAX_TEST_POINTS):, -1]
 
-        c_clf = Classifier(self.CLASSIFIER_TYPE, categorical=[True] * X_train_complete.shape[1],
+        c_clf = Classifier(self.CLASSIFIER_TYPE, categorical=self.categorical,
                            uncertainty_measure=self.uncertainty_measure, set_alpha=self.set_alpha)
         c_clf.train(X_train_complete, Y_train, incomplete=False)
         complete_accuracy_exp = c_clf.test_accuracy(X_test_complete, Y_test, incomplete=False)
@@ -75,7 +74,7 @@ class Exp:
             t1 = time.time()
             ############################################################################################
             X_train = self.remove_data(X_train_complete, rr)
-            clf = Classifier(self.CLASSIFIER_TYPE, categorical=[True] * X_train_complete.shape[1])
+            clf = Classifier(self.CLASSIFIER_TYPE, categorical=self.categorical)
             clf.train(X_train, Y_train)
             ai, si = self.run_exp(X_test, X_test_complete, Y_test, clf)
             print("Incomplete data finished in", time.time() - t1)
@@ -99,14 +98,19 @@ if __name__ == "__main__":
 
     # args.data = "car_0"
     CLASSIFIER_TYPE = args.clf
-    # sys.stdout = open("logs/" + args.data + "_" + args.clf + "_" + args.um + ".txt", "w")  # TODO
+    sys.stdout = open("logs/" + args.data + "_" + args.clf + "_" + args.um + ".txt", "w")
 
     # load data
     data = np.load("data/" + args.data + ".npy", allow_pickle=True)
-    feature_cols = np.load("data/" + args.data + "_fc.npy")
+    cat = np.load("data/" + args.data + "_cat.npy")
     print("Data loaded in", time.time() - start_time)
 
-    exp = Exp(args.um, feature_cols)
+    categorical = [False]*(data.shape[1]-1)
+    for c in cat:
+        categorical[c] = True
+
+    print(categorical)
+    exp = Exp(args.um, categorical)
     acc = np.zeros((len(exp.remove_ratios), 6))
     sampling_times = np.zeros((len(exp.remove_ratios), 6))
 
