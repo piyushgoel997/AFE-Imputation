@@ -1,5 +1,6 @@
 import argparse
 import random
+import sys
 import time
 import warnings
 from collections import Counter
@@ -26,7 +27,7 @@ class Exp:
     def remove_data(self, X, r):
         _X = np.copy(X)
         for i in range(_X.shape[0]):
-            for j in range(len(_X.shape[1])):
+            for j in range(_X.shape[1]):
                 if random.random() < r:
                     _X[i, j] = np.nan
         return _X
@@ -101,7 +102,7 @@ if __name__ == "__main__":
     sys.stdout = open("logs/" + args.data + "_" + args.clf + "_" + args.um + ".txt", "w")
 
     # load data
-    data = np.load("data/" + args.data + ".npy", allow_pickle=True)
+    data = np.load("data/" + args.data + ".npy", allow_pickle=True).astype(np.float)
     cat = np.load("data/" + args.data + "_cat.npy")
     print("Data loaded in", time.time() - start_time)
 
