@@ -8,8 +8,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     path = args.path
 
-    c1 = set([str(f).split(".")[0] for f in listdir(path)
-              if isfile(join(path, f)) and "log.txt" not in f and "fc" not in f])
+    c1 = set([str(f).split(".")[0] for f in listdir(path) if isfile(join(path, f)) and "_cat" not in f])
     c2 = ["confidence", "variance", "entropy", "confidence*", "variance*", "entropy*"]
     c3 = ["nn", "dt"]
     names = []
