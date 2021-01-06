@@ -528,17 +528,14 @@ class MissForest(BaseEstimator, TransformerMixin):
         if not mask.sum() > 0:
             warnings.warn("No missing value located; returning original "
                           "dataset.")
-            return X
+            # return X
 
         # row_total_missing = mask.sum(axis=1)
         # if not np.any(row_total_missing):
         #     return X
 
         # Call missForest function to impute missing
-        X = self._miss_forest(X, mask)
-
-        # Return imputed dataset
-        return X
+        return self._miss_forest(X, mask)
 
     def fit_transform(self, X, y=None, **fit_params):
         """Fit MissForest and impute all missing values in X.
