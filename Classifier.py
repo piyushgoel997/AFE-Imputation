@@ -12,8 +12,8 @@ from Utils import argmax, calc_uncertainty, argmin
 class Classifier:
     def __init__(self, type, categorical, uncertainty_measure="confidence", set_alpha=False):
         self._categorical = categorical
-        self._num_imputers = 2  # TODO
-        self._internal_loop = 2  # TODO
+        self._num_imputers = 10
+        self._internal_loop = 10
         self._list_of_imputers = []
 
         self._uncertainty_measure = uncertainty_measure
@@ -63,14 +63,20 @@ class Classifier:
                         if np.isnan(X[i, j]):
                             f = [argmax(est.tree_.value[leaf][0])
                                  for leaf, est in zip(out[i], self._list_of_imputers[k].list_of_forests[j].estimators_)]
-                            un = 0
+                            total_uncert = 0
+                            saved = {}
                             for c in f:
-                                x = np.copy(X[i, :])
-                                x[j] = c
-                                expected_p = self._expected_prob(x, k)
-                                un += calc_uncertainty(expected_p, method=self._uncertainty_measure, alpha=self._alpha)
-                            un = un / len(f)
-                            expected_uncert_matrix[i, j] = un
+                                if c not in saved:
+                                    x = np.copy(X[i, :])
+                                    x[j] = c
+                                    expected_p = self._expected_prob(x, k)
+                                    un = calc_uncertainty(expected_p, method=self._uncertainty_measure, alpha=self._alpha)
+                                    saved[c] = un
+                                else:
+                                    un = saved[c]
+                                total_uncert += un
+                            total_uncert = total_uncert / len(f)
+                            expected_uncert_matrix[i, j] = total_uncert
             expected_uncert_matrix = expected_uncert_matrix / self._num_imputers
             next_features = [argmin(x) for x in expected_uncert_matrix]
         else:
