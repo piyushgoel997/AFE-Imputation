@@ -279,11 +279,12 @@ class MissForest(BaseEstimator, TransformerMixin):
         # Get col and row indices for missing
         missing_rows, missing_cols = np.where(mask)
 
-        # TODO Make initial guess
+        # Make initial guess
         strawman_distr = self.statistics_.get('strawman_distr')
-        for i in Ximp.shape[0]:
-            for j in Ximp.shape[1]:
-                Ximp[i, j] = random.choice(strawman_distr[j])
+        for i in range(Ximp.shape[0]):
+            for j in range(Ximp.shape[1]):
+                if np.isnan(Ximp[i, j]):
+                    Ximp[i, j] = random.choice(strawman_distr[j])
 
         if self.num_vars_ is not None:
 
