@@ -1,6 +1,7 @@
 """MissForest Imputer for Missing Data"""
-# Author: Ashim Bhattarai
-# License: GNU General Public License v3 (GPLv3)
+import random
+
+"""Initial code taken from the missingpy library and then modified"""
 
 import warnings
 
@@ -278,17 +279,13 @@ class MissForest(BaseEstimator, TransformerMixin):
         # Get col and row indices for missing
         missing_rows, missing_cols = np.where(mask)
 
-        if self.num_vars_ is not None:
-            # Only keep indices for numerical vars
-            keep_idx_num = np.in1d(missing_cols, self.num_vars_)
-            missing_num_rows = missing_rows[keep_idx_num]
-            missing_num_cols = missing_cols[keep_idx_num]
+        # TODO Make initial guess
+        strawman_distr = self.statistics_.get('strawman_distr')
+        for i in Ximp.shape[0]:
+            for j in Ximp.shape[1]:
+                Ximp[i, j] = random.choice(strawman_distr[j])
 
-            # Make initial guess for missing values
-            col_means = np.full(Ximp.shape[1], fill_value=np.nan)
-            col_means[self.num_vars_] = self.statistics_.get('col_means')
-            Ximp[missing_num_rows, missing_num_cols] = np.take(
-                col_means, missing_num_cols)
+        if self.num_vars_ is not None:
 
             # Reg criterion
             reg_criterion = self.criterion if type(self.criterion) == str \
@@ -316,16 +313,6 @@ class MissForest(BaseEstimator, TransformerMixin):
         if self.cat_vars_ is not None:
             # Calculate total number of missing categorical values (used later)
             n_catmissing = np.sum(mask[:, self.cat_vars_])
-
-            # Only keep indices for categorical vars
-            keep_idx_cat = np.in1d(missing_cols, self.cat_vars_)
-            missing_cat_rows = missing_rows[keep_idx_cat]
-            missing_cat_cols = missing_cols[keep_idx_cat]
-
-            # Make initial guess for missing values
-            col_modes = np.full(Ximp.shape[1], fill_value=np.nan)
-            col_modes[self.cat_vars_] = self.statistics_.get('col_modes')
-            Ximp[missing_cat_rows, missing_cat_cols] = np.take(col_modes, missing_cat_cols)
 
             # Classfication criterion
             clf_criterion = self.criterion if type(self.criterion) == str \
@@ -364,6 +351,8 @@ class MissForest(BaseEstimator, TransformerMixin):
         gamma_oldcat = np.inf
         col_index = np.arange(Ximp.shape[1])
 
+        list_of_forests = [None] * Ximp.shape[1]
+
         while (
                 gamma_new < gamma_old or gamma_newcat < gamma_oldcat) and \
                 self.iter_count_ < self.max_iter:
@@ -400,12 +389,14 @@ class MissForest(BaseEstimator, TransformerMixin):
                     ymis = rf_classifier.predict(xmis)
                     # 8. update imputed matrix using predicted matrix ymis(s)
                     Ximp[mis_rows, s] = ymis
+                    list_of_forests[s] = rf_classifier
                 else:
                     rf_regressor.fit(X=xobs, y=yobs)
                     # 7. predict ymis(s) using xmis(x)
                     ymis = rf_regressor.predict(xmis)
                     # 8. update imputed matrix using predicted matrix ymis(s)
                     Ximp[mis_rows, s] = ymis
+                    list_of_forests[s] = rf_regressor
 
             # 9. Update gamma (stopping criterion)
             if self.cat_vars_ is not None:
@@ -417,7 +408,7 @@ class MissForest(BaseEstimator, TransformerMixin):
             print("Iteration:", self.iter_count_)
             self.iter_count_ += 1
 
-        return Ximp_old
+        return Ximp_old, list_of_forests
 
     def fit(self, X, y=None, cat_vars=None):
         """Fit the imputer on X.
@@ -477,14 +468,17 @@ class MissForest(BaseEstimator, TransformerMixin):
             X[np.where(X == self.missing_values)] = np.nan
 
         # Now, make initial guess for missing values
-        col_means = np.nanmean(X[:, num_vars], axis=0) if num_vars is not None else None
-        col_modes = mode(
-            X[:, cat_vars], axis=0, nan_policy='omit')[0] if cat_vars is not \
-                                                           None else None
+        strawman_distr = []
+        for j in X.shape[1]:
+            list_for_this_feature = []
+            for x in list(X[:, j]):
+                if not np.isnan(x):
+                    list_for_this_feature.append(x)
+            strawman_distr.append(list_for_this_feature)
 
         self.cat_vars_ = cat_vars
         self.num_vars_ = num_vars
-        self.statistics_ = {"col_means": col_means, "col_modes": col_modes}
+        self.statistics_ = {"strawman_distr": strawman_distr}
 
         return self
 
