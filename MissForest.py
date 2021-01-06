@@ -270,7 +270,9 @@ class MissForest(BaseEstimator, TransformerMixin):
         self.warm_start = warm_start
         self.class_weight = class_weight
 
-    def _miss_forest(self, Ximp, mask):
+        self.list_of_forests = None
+
+    def _miss_forest(self, Ximp, mask, test):
         """The missForest algorithm"""
 
         # Count missing per column
@@ -286,57 +288,10 @@ class MissForest(BaseEstimator, TransformerMixin):
                 if np.isnan(Ximp[i, j]):
                     Ximp[i, j] = random.choice(strawman_distr[j])
 
-        if self.num_vars_ is not None:
-
-            # Reg criterion
-            reg_criterion = self.criterion if type(self.criterion) == str \
-                else self.criterion[0]
-
-            # Instantiate regression model
-            rf_regressor = RandomForestRegressor(
-                n_estimators=self.n_estimators,
-                criterion=reg_criterion,
-                max_depth=self.max_depth,
-                min_samples_split=self.min_samples_split,
-                min_samples_leaf=self.min_samples_leaf,
-                min_weight_fraction_leaf=self.min_weight_fraction_leaf,
-                max_features=self.max_features,
-                max_leaf_nodes=self.max_leaf_nodes,
-                min_impurity_decrease=self.min_impurity_decrease,
-                bootstrap=self.bootstrap,
-                oob_score=self.oob_score,
-                n_jobs=self.n_jobs,
-                random_state=self.random_state,
-                verbose=self.verbose,
-                warm_start=self.warm_start)
-
         # If needed, repeat for categorical variables
         if self.cat_vars_ is not None:
             # Calculate total number of missing categorical values (used later)
             n_catmissing = np.sum(mask[:, self.cat_vars_])
-
-            # Classfication criterion
-            clf_criterion = self.criterion if type(self.criterion) == str \
-                else self.criterion[1]
-
-            # Instantiate classification model
-            rf_classifier = RandomForestClassifier(
-                n_estimators=self.n_estimators,
-                criterion=clf_criterion,
-                max_depth=self.max_depth,
-                min_samples_split=self.min_samples_split,
-                min_samples_leaf=self.min_samples_leaf,
-                min_weight_fraction_leaf=self.min_weight_fraction_leaf,
-                max_features=self.max_features,
-                max_leaf_nodes=self.max_leaf_nodes,
-                min_impurity_decrease=self.min_impurity_decrease,
-                bootstrap=self.bootstrap,
-                oob_score=self.oob_score,
-                n_jobs=self.n_jobs,
-                random_state=self.random_state,
-                verbose=self.verbose,
-                warm_start=self.warm_start,
-                class_weight=self.class_weight)
 
         # 2. misscount_idx: sorted indices of cols in X based on missing count
         misscount_idx = np.argsort(col_missing_count)
@@ -352,7 +307,8 @@ class MissForest(BaseEstimator, TransformerMixin):
         gamma_oldcat = np.inf
         col_index = np.arange(Ximp.shape[1])
 
-        list_of_forests = [None] * Ximp.shape[1]
+        if not test:
+            self.list_of_forests = [None] * Ximp.shape[1]
 
         while (
                 gamma_new < gamma_old or gamma_newcat < gamma_oldcat) and \
@@ -373,8 +329,8 @@ class MissForest(BaseEstimator, TransformerMixin):
                 mis_rows = np.where(mask[:, s])[0]
 
                 # If no missing, then skip
-                if len(mis_rows) == 0:
-                    continue
+                # if len(mis_rows) == 0:
+                #     continue
 
                 # Get observed values of 's'
                 yobs = Ximp[obs_rows, s]
@@ -385,19 +341,81 @@ class MissForest(BaseEstimator, TransformerMixin):
 
                 # 6. Fit a random forest over observed and predict the missing
                 if self.cat_vars_ is not None and s in self.cat_vars_:
-                    rf_classifier.fit(X=xobs, y=yobs)
-                    # 7. predict ymis(s) using xmis(x)
-                    ymis = rf_classifier.predict(xmis)
-                    # 8. update imputed matrix using predicted matrix ymis(s)
-                    Ximp[mis_rows, s] = ymis
-                    list_of_forests[s] = rf_classifier
+
+                    if not test:
+                        # Classfication criterion
+                        clf_criterion = self.criterion if type(self.criterion) == str \
+                            else self.criterion[1]
+
+                        # Instantiate classification model
+                        rf_classifier = RandomForestClassifier(
+                            n_estimators=self.n_estimators,
+                            criterion=clf_criterion,
+                            max_depth=self.max_depth,
+                            min_samples_split=self.min_samples_split,
+                            min_samples_leaf=self.min_samples_leaf,
+                            min_weight_fraction_leaf=self.min_weight_fraction_leaf,
+                            max_features=self.max_features,
+                            max_leaf_nodes=self.max_leaf_nodes,
+                            min_impurity_decrease=self.min_impurity_decrease,
+                            bootstrap=self.bootstrap,
+                            oob_score=self.oob_score,
+                            n_jobs=self.n_jobs,
+                            random_state=self.random_state,
+                            verbose=self.verbose,
+                            warm_start=self.warm_start,
+                            class_weight=self.class_weight)
+
+                        rf_classifier.fit(X=xobs, y=yobs)
+                        if len(mis_rows) != 0:
+                            # 7. predict ymis(s) using xmis(x)
+                            ymis = rf_classifier.predict(xmis)
+                        self.list_of_forests[s] = rf_classifier
+                    else:
+                        if len(mis_rows) != 0:
+                            # 7. predict ymis(s) using xmis(x)
+                            ymis = self.list_of_forests[s].predict(xmis)
+                    if len(mis_rows) != 0:
+                        # 8. update imputed matrix using predicted matrix ymis(s)
+                        Ximp[mis_rows, s] = ymis
+
                 else:
-                    rf_regressor.fit(X=xobs, y=yobs)
-                    # 7. predict ymis(s) using xmis(x)
-                    ymis = rf_regressor.predict(xmis)
-                    # 8. update imputed matrix using predicted matrix ymis(s)
-                    Ximp[mis_rows, s] = ymis
-                    list_of_forests[s] = rf_regressor
+
+                    if not test:
+                        # Reg criterion
+                        reg_criterion = self.criterion if type(self.criterion) == str \
+                            else self.criterion[0]
+
+                        # Instantiate regression model
+                        rf_regressor = RandomForestRegressor(
+                            n_estimators=self.n_estimators,
+                            criterion=reg_criterion,
+                            max_depth=self.max_depth,
+                            min_samples_split=self.min_samples_split,
+                            min_samples_leaf=self.min_samples_leaf,
+                            min_weight_fraction_leaf=self.min_weight_fraction_leaf,
+                            max_features=self.max_features,
+                            max_leaf_nodes=self.max_leaf_nodes,
+                            min_impurity_decrease=self.min_impurity_decrease,
+                            bootstrap=self.bootstrap,
+                            oob_score=self.oob_score,
+                            n_jobs=self.n_jobs,
+                            random_state=self.random_state,
+                            verbose=self.verbose,
+                            warm_start=self.warm_start)
+
+                        rf_regressor.fit(X=xobs, y=yobs)
+                        if len(mis_rows) != 0:
+                            # 7. predict ymis(s) using xmis(x)
+                            ymis = rf_regressor.predict(xmis)
+                        self.list_of_forests[s] = rf_regressor
+                    else:
+                        if len(mis_rows) != 0:
+                            # 7. predict ymis(s) using xmis(x)
+                            ymis = self.list_of_forests[s].predict(xmis)
+                    if len(mis_rows) != 0:
+                        # 8. update imputed matrix using predicted matrix ymis(s)
+                        Ximp[mis_rows, s] = ymis
 
             # 9. Update gamma (stopping criterion)
             if self.cat_vars_ is not None:
@@ -406,10 +424,10 @@ class MissForest(BaseEstimator, TransformerMixin):
             if self.num_vars_ is not None:
                 gamma_new = np.sum((Ximp[:, self.num_vars_] - Ximp_old[:, self.num_vars_]) ** 2) / np.sum((Ximp[:, self.num_vars_]) ** 2)
 
-            print("Iteration:", self.iter_count_)
+            # print("Iteration:", self.iter_count_)
             self.iter_count_ += 1
 
-        return Ximp_old, list_of_forests
+        return Ximp_old
 
     def fit(self, X, y=None, cat_vars=None):
         """Fit the imputer on X.
@@ -470,7 +488,7 @@ class MissForest(BaseEstimator, TransformerMixin):
 
         # Now, make initial guess for missing values
         strawman_distr = []
-        for j in X.shape[1]:
+        for j in range(X.shape[1]):
             list_for_this_feature = []
             for x in list(X[:, j]):
                 if not np.isnan(x):
@@ -483,7 +501,7 @@ class MissForest(BaseEstimator, TransformerMixin):
 
         return self
 
-    def transform(self, X):
+    def transform(self, X, test=False):
         """Impute all missing values in X.
 
         Parameters
@@ -509,10 +527,10 @@ class MissForest(BaseEstimator, TransformerMixin):
         if np.any(np.isinf(X)):
             raise ValueError("+/- inf values are not supported.")
 
-        # Check if any column has all missing
-        mask = _get_mask(X, self.missing_values)
-        if np.any(mask.sum(axis=0) >= (X.shape[0])):
-            raise ValueError("One or more columns have all rows missing.")
+        # # Check if any column has all missing
+        # mask = _get_mask(X, self.missing_values)
+        # if np.any(mask.sum(axis=0) >= (X.shape[0])):
+        #     raise ValueError("One or more columns have all rows missing.")
 
         # Get fitted X col count and ensure correct dimension
         n_cols_fit_X = (0 if self.num_vars_ is None else len(self.num_vars_)) \
@@ -535,7 +553,10 @@ class MissForest(BaseEstimator, TransformerMixin):
         #     return X
 
         # Call missForest function to impute missing
-        return self._miss_forest(X, mask)
+        X = self._miss_forest(X, mask, test=test)
+
+        # return the imputed matrix
+        return X
 
     def fit_transform(self, X, y=None, **fit_params):
         """Fit MissForest and impute all missing values in X.
