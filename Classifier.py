@@ -22,7 +22,7 @@ class Classifier:
         if type == "decision_tree" or type == "dt":
             self._clf = DecisionTreeClassifier()
         elif type == "neural_network" or type == "nn":
-            self._clf = MLPClassifier()  # TODO increase the hidden layer numbers if needed.
+            self._clf = MLPClassifier(hidden_layer_sizes=(100, 100,))
         else:
             print("The type is", type)
             raise ValueError("invalid classifier type")
