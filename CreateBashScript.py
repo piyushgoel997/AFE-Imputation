@@ -8,7 +8,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     path = args.path
     files = [join(path, f) for f in listdir(path) if isfile(join(path, f)) and "_cat" not in f]
-    c1 = [str(f).split("\\")[-1].split(".")[0] for f in sorted(files, key=getsize)]
+    c1 = [str(f).split("/")[-1].split("\\")[-1].split(".")[0] for f in sorted(files, key=getsize)]
     c2 = ["confidence", "variance", "entropy", "confidence*", "variance*", "entropy*"]
     c3 = ["nn", "dt"]
     names = []
