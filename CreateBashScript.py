@@ -1,14 +1,14 @@
 import argparse
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, getsize
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', default="data")
     args = parser.parse_args()
     path = args.path
-
-    c1 = set([str(f).split(".")[0] for f in listdir(path) if isfile(join(path, f)) and "_cat" not in f])
+    files = [join(path, f) for f in listdir(path) if isfile(join(path, f)) and "_cat" not in f]
+    c1 = [str(f).split("\\")[-1].split(".")[0] for f in sorted(files, key=getsize)]
     c2 = ["confidence", "variance", "entropy", "confidence*", "variance*", "entropy*"]
     c3 = ["nn", "dt"]
     names = []
