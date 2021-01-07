@@ -15,8 +15,8 @@ warnings.filterwarnings("ignore")
 class Exp:
 
     def __init__(self, uncertainty_measure, categorical_):
-        self.NUM_EXPERIMENTS = 5
-        self.MAX_TEST_POINTS = 1000
+        self.NUM_EXPERIMENTS = 10
+        self.MAX_TEST_POINTS = 500
         self.CLASSIFIER_TYPE = "nn"
         self.remove_ratios = [0.25, 0.5, 0.75]
         self.uncertainty_measure = uncertainty_measure.split("*")[0]
@@ -120,7 +120,7 @@ if __name__ == "__main__":
         exp_list.append(np.copy(data))
 
     if args.parallel:
-        pool = Pool(10)
+        pool = Pool()
         res = pool.map_async(exp.one_exp, exp_list).get()
     else:
         res = map(exp.one_exp, exp_list)

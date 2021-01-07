@@ -21,7 +21,7 @@ if __name__ == "__main__":
                     mem = "500G"
                 command = "#!/bin/bash\n" \
                           "#SBATCH --time=24:00:00\n" \
-                          "#SBATCH -n 10\n" \
+                          "#SBATCH -c 10\n" \
                           "#SBATCH --job-name=" + n + "\n" \
                           "#SBATCH --partition=short\n" \
                           "#SBATCH --mem=" + mem + "\n" \
