@@ -11,6 +11,8 @@ def argmin(l):
 
 def calc_uncertainty(predictions, alpha=0.5, method="confidence"):
     p = predictions[1]
+    if p == 0 or p == 1:
+        return 0
     p = math.pow(p, -math.log(2, alpha))
     if method == "confidence":
         uncert = 1 - abs(1 - 2 * p)
