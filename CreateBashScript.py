@@ -12,11 +12,13 @@ if __name__ == "__main__":
     c2 = ["confidence", "variance", "entropy", "confidence*", "variance*", "entropy*"]
     c3 = ["nn", "dt"]
     names = []
+    mem = "200G"
     for a in c1:
         for b in c2:
             for c in c3:
                 n = a + "_" + b[:-6] + "_" + c
-                mem = "500G"
+                if "spam" in n:
+                    mem = "500G"
                 command = "#!/bin/bash\n" \
                           "#SBATCH --time=24:00:00\n" \
                           "#SBATCH -n 10\n" \

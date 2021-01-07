@@ -12,7 +12,7 @@ from Utils import argmax, calc_uncertainty, argmin
 class Classifier:
     def __init__(self, type, categorical, uncertainty_measure="confidence", set_alpha=False):
         self._categorical = categorical
-        self._num_imputers = 10
+        self._num_imputers = 1
         self._internal_loop = 10
         self._list_of_imputers = []
 
@@ -22,7 +22,7 @@ class Classifier:
         if type == "decision_tree" or type == "dt":
             self._clf = DecisionTreeClassifier()
         elif type == "neural_network" or type == "nn":
-            self._clf = MLPClassifier(hidden_layer_sizes=(100, 100,))
+            self._clf = MLPClassifier(hidden_layer_sizes=(100,))
         else:
             print("The type is", type)
             raise ValueError("invalid classifier type")

@@ -1,6 +1,5 @@
 import argparse
 import random
-import sys
 import time
 import warnings
 from collections import Counter
@@ -16,8 +15,8 @@ warnings.filterwarnings("ignore")
 class Exp:
 
     def __init__(self, uncertainty_measure, categorical_):
-        self.NUM_EXPERIMENTS = 10
-        self.MAX_TEST_POINTS = 500
+        self.NUM_EXPERIMENTS = 5
+        self.MAX_TEST_POINTS = 1000
         self.CLASSIFIER_TYPE = "nn"
         self.remove_ratios = [0.25, 0.5, 0.75]
         self.uncertainty_measure = uncertainty_measure.split("*")[0]
@@ -97,10 +96,6 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    # args.data = "car_0"
-    CLASSIFIER_TYPE = args.clf
-    sys.stdout = open("logs/" + args.data + "_" + args.clf + "_" + args.um + ".txt", "w")
-
     # load data
     data = np.load("data/" + args.data + ".npy", allow_pickle=True).astype(np.float)
     cat = np.load("data/" + args.data + "_cat.npy")
@@ -112,6 +107,7 @@ if __name__ == "__main__":
 
     print(categorical)
     exp = Exp(args.um, categorical)
+    exp.CLASSIFIER_TYPE = args.clf
     acc = np.zeros((len(exp.remove_ratios), 6))
     sampling_times = np.zeros((len(exp.remove_ratios), 6))
 
