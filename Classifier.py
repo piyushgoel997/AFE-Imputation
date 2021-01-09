@@ -99,7 +99,7 @@ class Classifier:
         _X = np.copy(X)
         if incomplete:
             _X = self._impute_missing(_X)
-        return roc_auc_score(Y, self.predict(_X))
+        return roc_auc_score(Y, self.predict(_X)[:, 1])
 
     def _impute_missing(self, _X, k=0):
         """

@@ -33,6 +33,7 @@ class Exp:
 
     def run_exp(self, X_test, X_test_complete, Y_test, clf):
         A = []
+        AR = []
         S = []
         for method in ["random", "leu"]:
             print(method, "started")
@@ -43,11 +44,13 @@ class Exp:
             for i_, j in enumerate(learn_idx):
                 _X[i_, j] = X_test_complete[i_, j]
             A.append(clf.test_accuracy(_X, Y_test))
+            AR.append(clf.test_auc(_X, Y_test))
             print(method, "ended")
         # no sampling
         A.append(clf.test_accuracy(X_test, Y_test))
+        AR.append(clf.test_auc(X_test, Y_test))
         S.append(0)
-        return A, S
+        return A, AR, S
 
     def one_exp(self, data_exp):
         np.random.shuffle(data_exp)
@@ -61,27 +64,30 @@ class Exp:
                            uncertainty_measure=self.uncertainty_measure, set_alpha=self.set_alpha)
         c_clf.train(X_train_complete, Y_train, incomplete=False)
         complete_accuracy_exp = c_clf.test_accuracy(X_test_complete, Y_test, incomplete=False)
+        complete_auc_exp = c_clf.test_auc(X_test_complete, Y_test, incomplete=False)
 
         acc_exp = np.zeros((len(self.remove_ratios), 6))
+        auc_exp = np.zeros((len(self.remove_ratios), 6))
         sampling_times_exp = np.zeros((len(self.remove_ratios), 6))
 
         for j, rr in enumerate(self.remove_ratios):
             print("Starting exp for remove ratio", rr)
             t1 = time.time()
             X_test = self.remove_data(X_test_complete, rr)
-            ac, sc = self.run_exp(X_test, X_test_complete, Y_test, c_clf)
+            ac, arc, sc = self.run_exp(X_test, X_test_complete, Y_test, c_clf)
             print("Complete data finished in", time.time() - t1)
             t1 = time.time()
             ############################################################################################
             X_train = self.remove_data(X_train_complete, rr)
             clf = Classifier(self.CLASSIFIER_TYPE, categorical=self.categorical)
             clf.train(X_train, Y_train)
-            ai, si = self.run_exp(X_test, X_test_complete, Y_test, clf)
+            ai, ari, si = self.run_exp(X_test, X_test_complete, Y_test, clf)
             print("Incomplete data finished in", time.time() - t1)
-            print(rr, ac, sc, ai, si)
+            print(rr, ac, arc, sc, ai, ari, si)
             acc_exp[j] = np.array(ac + ai)
+            auc_exp[j] = np.array(arc + ari)
             sampling_times_exp[j] = np.array(sc + si)
-        return acc_exp, sampling_times_exp, complete_accuracy_exp
+        return acc_exp, auc_exp, sampling_times_exp, complete_accuracy_exp, complete_auc_exp
 
 
 if __name__ == "__main__":
@@ -109,9 +115,11 @@ if __name__ == "__main__":
     exp = Exp(args.um, categorical)
     exp.CLASSIFIER_TYPE = args.clf
     acc = np.zeros((len(exp.remove_ratios), 6))
+    auc = np.zeros((len(exp.remove_ratios), 6))
     sampling_times = np.zeros((len(exp.remove_ratios), 6))
 
     complete_accuracy = 0
+    complete_auc = 0
 
     print("Starting experiments")
 
@@ -126,23 +134,30 @@ if __name__ == "__main__":
         res = map(exp.one_exp, exp_list)
 
     for r in res:
-        a, s, ca = r
+        a, ar, s, ca, car = r
         acc += a
+        auc += ar
         sampling_times += s
         complete_accuracy += ca
+        complete_auc += car
         t = time.time()
     print("Experiments finished")
 
     for i in range(len(exp.remove_ratios)):
         acc[i] /= exp.NUM_EXPERIMENTS
+        auc[i] /= exp.NUM_EXPERIMENTS
         sampling_times[i] /= exp.NUM_EXPERIMENTS
     complete_accuracy /= exp.NUM_EXPERIMENTS
-    for a, s, r in zip(acc, sampling_times, exp.remove_ratios):
+    complete_auc /= exp.NUM_EXPERIMENTS
+    for a, ar, s, r in zip(acc, auc, sampling_times, exp.remove_ratios):
         print("==========================================================")
         print("Complete training data! Remove ratio =", r)
         print()
         print("Averaged Accuracies ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
               "Least Expected Uncertainty = {:.5f}".format(a[2], a[0], a[1]))
+        print()
+        print("Averaged AUCs ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
+              "Least Expected Uncertainty = {:.5f}".format(ar[2], ar[0], ar[1]))
         print()
         print("Averaged sampling times ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
               "Least Expected Uncertainty = {:.5f}".format(s[2], s[0], s[1]))
@@ -152,11 +167,15 @@ if __name__ == "__main__":
         print("Averaged Accuracies ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
               "Least Expected Uncertainty = {:.5f}".format(a[5], a[3], a[4]))
         print()
+        print("Averaged AUCs ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
+              "Least Expected Uncertainty = {:.5f}".format(a[5], a[3], a[4]))
+        print()
         print("Averaged sampling times ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
               "Least Expected Uncertainty = {:.5f}".format(s[5], s[3], s[4]))
         print("==========================================================")
     print("==========================================================")
     print("Accuracy with complete data = {:.5f}".format(complete_accuracy))
+    print("AUC with complete data = {:.5f}".format(complete_auc))
     print("Accuracy of trivial classifier = {:.5f}".format(
         max(sum(data[:, -1]) / len(data[:, -1]), (len(data[:, -1]) - sum(data[:, -1])) / len(data[:, -1]))))
     print("total time taken = {:.5f}".format(time.time() - start_time))
