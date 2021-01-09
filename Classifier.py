@@ -3,7 +3,7 @@ import random
 import numpy as np
 from sklearn.metrics import roc_auc_score
 from sklearn.neural_network import MLPClassifier
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 from MissForest import MissForest
 from Utils import argmax, calc_uncertainty, argmin
@@ -19,10 +19,10 @@ class Classifier:
         self._uncertainty_measure = uncertainty_measure
         self._alpha = 0.5
         self._set_alpha = set_alpha
-        if type == "decision_tree" or type == "dt":
-            self._clf = DecisionTreeClassifier()
+        if type == "random_forest" or type == "rf":
+            self._clf = RandomForestClassifier(n_estimators=10)
         elif type == "neural_network" or type == "nn":
-            self._clf = MLPClassifier(hidden_layer_sizes=(100,))
+            self._clf = MLPClassifier(hidden_layer_sizes=(10, 10,))
         else:
             print("The type is", type)
             raise ValueError("invalid classifier type")
@@ -44,7 +44,7 @@ class Classifier:
         if method == "random":
             next_features = []
             for _x in X:
-                p = [a[0] for a in np.argwhere(~np.isnan(_x))]
+                p = [a[0] for a in np.argwhere(np.isnan(_x))]
                 try:
                     next_features.append(random.choice(p))
                 except:
