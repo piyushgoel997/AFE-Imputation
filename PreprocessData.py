@@ -39,6 +39,7 @@ for i, c in enumerate(cols[split_at:]):
     data.append(label_encoder.fit_transform(f[c]).reshape((num_examples, 1)))
     data = np.concatenate(data, axis=1)
     print(data.shape)
+    np.random.shuffle(data)
     n = name + "_" + str(i)
     np.save("DataSets/Processed/" + n + ".npy", data)
     np.save("DataSets/Processed/" + n + "_cat.npy", np.array(categorical))

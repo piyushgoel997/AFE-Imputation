@@ -14,10 +14,11 @@ warnings.filterwarnings("ignore")
 
 class Exp:
 
-    def __init__(self, uncertainty_measure, categorical_):
-        self.NUM_EXPERIMENTS = 10
+    def __init__(self, data, clf_type, uncertainty_measure, categorical_):
+        self.data = data
+        self.NUM_FOLDS = 10
         self.MAX_TEST_POINTS = 500
-        self.CLASSIFIER_TYPE = "nn"
+        self.CLASSIFIER_TYPE = clf_type
         self.remove_ratios = [0.25, 0.5, 0.75]
         self.uncertainty_measure = uncertainty_measure.split("*")[0]
         self.set_alpha = len(uncertainty_measure.split("*")) == 2
@@ -52,13 +53,23 @@ class Exp:
         S.append(0)
         return A, AR, S
 
-    def one_exp(self, data_exp):
-        np.random.shuffle(data_exp)
-        X_train_complete = data_exp[:int(0.8 * len(data_exp)), :-1]
-        Y_train = data_exp[:int(0.8 * len(data_exp)), -1]
+    def split_indices(self, exp_no):
+        size = self.data.shape[0]
+        start = int((exp_no * size) / self.NUM_FOLDS)
+        stop = int(((exp_no + 1) * size) / self.NUM_FOLDS)
+        test = list(range(start, stop))
+        test = test[:min(len(test), 500)]
+        train = list(range(0, start)) + list(range(stop, size))
+        return train, test
 
-        X_test_complete = data_exp[max(int(0.8 * len(data_exp)), len(data_exp) - self.MAX_TEST_POINTS):, :-1]
-        Y_test = data_exp[max(int(0.8 * len(data_exp)), len(data_exp) - self.MAX_TEST_POINTS):, -1]
+    def one_exp(self, exp_no):
+        train_ind, test_ind = self.split_indices(exp_no)
+
+        X_train_complete = self.data[train_ind, :-1]
+        Y_train = self.data[train_ind, -1]
+
+        X_test_complete = self.data[test_ind, :-1]
+        Y_test = self.data[test_ind, -1]
 
         c_clf = Classifier(self.CLASSIFIER_TYPE, categorical=self.categorical,
                            uncertainty_measure=self.uncertainty_measure, set_alpha=self.set_alpha)
@@ -107,13 +118,12 @@ if __name__ == "__main__":
     cat = np.load("data/" + args.data + "_cat.npy")
     print("Data loaded in", time.time() - start_time)
 
-    categorical = [False]*(data.shape[1]-1)
+    categorical = [False] * (data.shape[1] - 1)
     for c in cat:
         categorical[c] = True
 
     print(categorical)
-    exp = Exp(args.um, categorical)
-    exp.CLASSIFIER_TYPE = args.clf
+    exp = Exp(data, args.clf, args.um, categorical)
     acc = np.zeros((len(exp.remove_ratios), 6))
     auc = np.zeros((len(exp.remove_ratios), 6))
     sampling_times = np.zeros((len(exp.remove_ratios), 6))
@@ -123,15 +133,11 @@ if __name__ == "__main__":
 
     print("Starting experiments")
 
-    exp_list = []
-    for _ in range(exp.NUM_EXPERIMENTS):
-        exp_list.append(np.copy(data))
-
     if args.parallel:
         pool = Pool()
-        res = pool.map_async(exp.one_exp, exp_list).get()
+        res = pool.map_async(exp.one_exp, list(range(exp.NUM_FOLDS))).get()
     else:
-        res = map(exp.one_exp, exp_list)
+        res = map(exp.one_exp, list(range(exp.NUM_FOLDS)))
 
     for r in res:
         a, ar, s, ca, car = r
@@ -144,11 +150,11 @@ if __name__ == "__main__":
     print("Experiments finished")
 
     for i in range(len(exp.remove_ratios)):
-        acc[i] /= exp.NUM_EXPERIMENTS
-        auc[i] /= exp.NUM_EXPERIMENTS
-        sampling_times[i] /= exp.NUM_EXPERIMENTS
-    complete_accuracy /= exp.NUM_EXPERIMENTS
-    complete_auc /= exp.NUM_EXPERIMENTS
+        acc[i] /= exp.NUM_FOLDS
+        auc[i] /= exp.NUM_FOLDS
+        sampling_times[i] /= exp.NUM_FOLDS
+    complete_accuracy /= exp.NUM_FOLDS
+    complete_auc /= exp.NUM_FOLDS
     for a, ar, s, r in zip(acc, auc, sampling_times, exp.remove_ratios):
         print("==========================================================")
         print("Complete training data! Remove ratio =", r)
