@@ -174,7 +174,7 @@ if __name__ == "__main__":
               "Least Expected Uncertainty = {:.5f}".format(a[5], a[3], a[4]))
         print()
         print("Averaged AUCs ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
-              "Least Expected Uncertainty = {:.5f}".format(a[5], a[3], a[4]))
+              "Least Expected Uncertainty = {:.5f}".format(ar[5], ar[3], ar[4]))
         print()
         print("Averaged sampling times ->\nNo sampling = {:.5f}\nRandom selection = {:.5f}\n"
               "Least Expected Uncertainty = {:.5f}".format(s[5], s[3], s[4]))
