@@ -19,7 +19,7 @@ if __name__ == "__main__":
     memory = {"abalone_0": "10G", "adult_0": "100G", "avila_0": "50G", "bank_0": "100G", "biodeg_0": "10G",
               "cardiotocography_0": "20G", "car_0": "5G", "credit_card_defaulters_0": "100G",
               "drug_consumption_5": "10G", "faults_0": "20G", "frogs_0": "50G", "mushroom_0": "20G",
-              "obesity_0": "10G", "online_shoppers_intention_0": "50G", "phishing_0": "5G", "sat_0": "300G",
+              "obesity_0": "10G", "online_shoppers_intention_0": "50G", "phishing_0": "5G", "sat_0": "50G",
               "Sensorless_drive_diagnosis_0": "500G", "shill_bidding_0": "20G", "spambase_0": "100G",
               "statlog-is_0": "10G", "statlog-ls_0": "20G", "wine_quality_merged_0": "20G"}
     num_features = [8, 13, 10, 16, 41, 25, 6, 23, 12, 27, 20, 22, 16, 17, 9, 36, 100, 9, 57, 19, 36, 12]
