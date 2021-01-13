@@ -21,15 +21,15 @@ if __name__ == "__main__":
     except:
         print()
 
-    memory = {"abalone_0": "10G", "adult_0": "100G", "avila_0": "50G", "bank_0": "100G", "biodeg_0": "10G",
-              "cardiotocography_0": "20G", "car_0": "5G", "credit_card_defaulters_0": "100G",
-              "drug_consumption_5": "10G", "faults_0": "20G", "frogs_0": "50G", "mushroom_0": "20G",
-              "obesity_0": "10G", "online_shoppers_intention_0": "50G", "phishing_0": "5G", "sat_0": "50G",
-              "Sensorless_drive_diagnosis_0": "500G", "shill_bidding_0": "20G", "spambase_0": "100G",
-              "statlog-is_0": "10G", "statlog-ls_0": "20G", "wine_quality_merged_0": "20G"}
+    memory = {"abalone_0": "100G", "adult_0": "500G", "avila_0": "500G", "bank_0": "500G", "biodeg_0": "100G",
+              "cardiotocography_0": "200G", "car_0": "50G", "credit_card_defaulters_0": "500G",
+              "drug_consumption_5": "100G", "faults_0": "200G", "frogs_0": "500G", "mushroom_0": "200G",
+              "obesity_0": "100G", "online_shoppers_intention_0": "500G", "phishing_0": "50G", "sat_0": "500G",
+              "Sensorless_drive_diagnosis_0": "5000G", "shill_bidding_0": "200G", "spambase_0": "1000G",
+              "statlog-is_0": "100G", "statlog-ls_0": "200G", "wine_quality_merged_0": "200G"}
     num_features = [8, 13, 10, 16, 41, 25, 6, 23, 12, 27, 20, 22, 16, 17, 9, 36, 100, 9, 57, 19, 36, 12]
 
-    c2 = ["confidence", "variance", "entropy", "confidence*", "variance*", "entropy*"]
+    c2 = ["confidence", "variance", "entropy"]
     c3 = ["nn", "rf"]
     names = []
     partition = "short"
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     for a, mem in [x for _, x in sorted(zip(num_features, memory.items()), key=lambda item: item[0])]:
         for b in c2:
             for c in c3:
-                if "statlog" in a:
+                if "sat" in a:
                     partition = "long"
                     time = "5-00:00"
                 n = a + "_" + b[:-6] + "_" + c
@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 names.append("scripts/individual/" + n)
                 f.write(command)
 
-    for i in range(0, len(names), 12):
-        f = open("scripts/run_all_" + str(int(i / 12) + 1), 'w')
+    for i in range(0, len(names), 6):
+        f = open("scripts/run_all_" + str(int(i / 6) + 1), 'w')
         f.write("sbatch ")
-        f.write("\nsbatch ".join(names[i: i + 12]))
+        f.write("\nsbatch ".join(names[i: i + 6]))
