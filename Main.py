@@ -150,7 +150,7 @@ if __name__ == "__main__":
     #     2 -> acc, auc roc, uncertainty, sampling times, complete accuracy, complete auc roc
     # acc, auc roc, uncertainty, sampling times -> Axis 1 -> missing ratios 0.25, 0.50, 0.75
     #      Axis 2 -> random, leu, no first for complete and then for incomplete.
-    pickle.dump(res, open("saved_results/" + args.data, 'wb'))
+    pickle.dump(res, open("saved_results/" + args.data + "_" + args.um + "_" + args.clf, 'wb'))
 
     for r in res:
         a, ar, u, s, ca, car = r
