@@ -87,7 +87,7 @@ class Classifier:
         _X = np.copy(X)
         if incomplete:
             _X = self._impute_missing(_X)
-        return self._clf.predict_proba(X)
+        return self._clf.predict_proba(_X)
 
     def test_accuracy(self, X, Y, incomplete=True):
         _X = np.copy(X)
