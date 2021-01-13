@@ -12,7 +12,7 @@ from Utils import argmax, calc_uncertainty, argmin
 class Classifier:
     def __init__(self, type, categorical, uncertainty_measure="confidence", set_alpha=False):
         self._categorical = categorical
-        self._num_imputers = 1
+        self._num_imputers = 10
         self._internal_loop = 10
         self._list_of_imputers = []
 
