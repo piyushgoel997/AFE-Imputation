@@ -115,3 +115,10 @@ class Classifier:
         _X = self._impute_missing(_X, k)
         pred = self.predict(_X, incomplete=False)
         return np.average(pred, axis=0)
+
+    def average_uncertainty(self, X):
+        pred = self.predict(X)
+        uncert = 0
+        for p in pred:
+            uncert += calc_uncertainty(p, alpha=self._alpha, method=self._uncertainty_measure)
+        return uncert / len(pred)
