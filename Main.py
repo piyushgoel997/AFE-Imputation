@@ -1,4 +1,5 @@
 import argparse
+import pickle
 import random
 import time
 import warnings
@@ -145,7 +146,11 @@ if __name__ == "__main__":
     else:
         res = map(exp.one_exp, list(range(exp.NUM_FOLDS)))
 
-    # TODO save res in a file.
+    # axis 1 -> folds
+    #     2 -> acc, auc roc, uncertainty, sampling times, complete accuracy, complete auc roc
+    # acc, auc roc, uncertainty, sampling times -> Axis 1 -> missing ratios 0.25, 0.50, 0.75
+    #      Axis 2 -> random, leu, no first for complete and then for incomplete.
+    pickle.dump(res, open("saved_results/" + args.data))
 
     for r in res:
         a, ar, u, s, ca, car = r
