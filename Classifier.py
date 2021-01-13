@@ -3,7 +3,7 @@ import random
 import numpy as np
 from sklearn.metrics import roc_auc_score
 from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
 
 from MissForest import MissForest
 from Utils import argmax, calc_uncertainty, argmin
@@ -20,9 +20,9 @@ class Classifier:
         self._alpha = 0.5
         self._set_alpha = set_alpha
         if type == "random_forest" or type == "rf":
-            self._clf = RandomForestClassifier(n_estimators=10)
+            self._clf = RandomForestClassifier(n_estimators=100)
         elif type == "neural_network" or type == "nn":
-            self._clf = MLPClassifier(hidden_layer_sizes=(10, 10,))
+            self._clf = BaggingClassifier(base_estimator=MLPClassifier(hidden_layer_sizes=(10, 10,)), n_estimators=30)
         else:
             print("The type is", type)
             raise ValueError("invalid classifier type")
