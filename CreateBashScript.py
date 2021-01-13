@@ -16,6 +16,11 @@ if __name__ == "__main__":
     except:
         print()
 
+    try:
+        os.mkdir("saved_results")
+    except:
+        print()
+
     memory = {"abalone_0": "10G", "adult_0": "100G", "avila_0": "50G", "bank_0": "100G", "biodeg_0": "10G",
               "cardiotocography_0": "20G", "car_0": "5G", "credit_card_defaulters_0": "100G",
               "drug_consumption_5": "10G", "faults_0": "20G", "frogs_0": "50G", "mushroom_0": "20G",
