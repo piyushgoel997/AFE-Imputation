@@ -117,8 +117,9 @@ class Classifier:
         return np.average(pred, axis=0)
 
     def average_uncertainty(self, X):
-        pred = self.predict(X)
         uncert = 0
-        for p in pred:
-            uncert += calc_uncertainty(p, alpha=self._alpha, method=self._uncertainty_measure)
-        return uncert / len(pred)
+        for k in range(self._num_imputers):
+            for i in range(X.shape[0]):
+                expected_p = self._expected_prob(np.copy(X[i]), k)
+                uncert += calc_uncertainty(expected_p, method=self._uncertainty_measure, alpha=self._alpha)
+        return uncert / (len(X) * self._num_imputers)

@@ -99,7 +99,7 @@ class Exp:
             clf.train(X_train, Y_train)
             ai, ari, ui, si = self.run_exp(X_test, X_test_complete, Y_test, clf)
             print("Incomplete data finished in", time.time() - t1)
-            print(rr, ac, arc, sc, ai, ari, si)
+            print(rr, ac, arc, uc, sc, ai, ari, ui, si)
             acc_exp[j] = np.array(ac + ai)
             auc_exp[j] = np.array(arc + ari)
             uncert_exp[j] = np.array(uc + ui)
