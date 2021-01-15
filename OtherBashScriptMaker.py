@@ -45,7 +45,7 @@ if __name__ == "__main__":
                 command = "#!/bin/bash\n" \
                           "#SBATCH --time=" + time + "\n" \
                           "#SBATCH -c 10\n" \
-                          "#SBATCH --job-name=" + n + "\n" \
+                          "#SBATCH --job-name=other_" + n + "\n" \
                           "#SBATCH --partition=" + partition + "\n" \
                           "#SBATCH --mem=" + mem + "\n" \
                           "#SBATCH --mail-user=goel.pi@northeastern.edu\n" \
