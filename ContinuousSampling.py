@@ -67,7 +67,7 @@ class Exp:
         A.append([clf.test_accuracy(X_test, Y_test)] + [-1] * (self.NUM_SAMPLES - 1))
         AR.append([clf.test_auc(X_test, Y_test)] + [-1] * (self.NUM_SAMPLES - 1))
         U.append([clf.average_uncertainty(X_test)] + [-1] * (self.NUM_SAMPLES - 1))
-        S.append([0] * (self.NUM_SAMPLES))
+        S.append([0] * self.NUM_SAMPLES)
         return A, AR, U, S
 
     def split_indices(self, exp_no):
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     #     2 -> acc, auc roc, uncertainty, sampling times, complete accuracy, complete auc roc
     # acc, auc roc, uncertainty, sampling times -> Axis 1 -> first, second, third sample
     #      Axis 2 -> random, leu, no first for complete and then for incomplete.
-    pickle.dump(res, open("saved_results/" + args.data + "_" + args.um[:-6] + "_" + args.clf, 'wb'))
+    pickle.dump(res, open("other_saved_results/" + args.data + "_" + args.um[:-6] + "_" + args.clf, 'wb'))
 
     for r in res:
         a, ar, u, s, ca, car = r
