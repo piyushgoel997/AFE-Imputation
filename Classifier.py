@@ -1,9 +1,10 @@
 import random
 
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import RandomForestClassifier, BaggingClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 from MissForest import MissForest
 from Utils import argmax, calc_uncertainty, argmin
@@ -15,6 +16,7 @@ class Classifier:
         self._num_imputers = 10
         self._internal_loop = 10
         self._list_of_imputers = []
+        self.feature_importance = []
 
         self._uncertainty_measure = uncertainty_measure
         self._alpha = 0.5
@@ -33,6 +35,11 @@ class Classifier:
             imp = MissForest()
             _X = imp.fit_transform(X)
             self._list_of_imputers.append(imp)
+        f_clf = DecisionTreeClassifier()
+        f_clf.fit(_X, Y)
+        self.feature_importance = [i for i, _ in reversed(sorted(enumerate(f_clf.feature_importances_),
+                                                                 key=lambda item: item[1]))]
+        print(self.feature_importance)
         return self._clf.fit(_X, Y)
 
     def next_features(self, X, method):
@@ -50,6 +57,13 @@ class Classifier:
                 except:
                     print("already know all features")
                     next_features.append(0)
+        elif method == "feature_importance":
+            next_features = [0] * X.shape[0]
+            for x in X:
+                for f in self.feature_importance:
+                    if np.isnan(x[f]):
+                        next_features[-1] = f
+                        break
         elif method == "leu":
             expected_uncert_matrix = self._num_imputers * np.ones(X.shape)
             for k in range(self._num_imputers):
@@ -70,7 +84,8 @@ class Classifier:
                                     x = np.copy(X[i, :])
                                     x[j] = c
                                     expected_p = self._expected_prob(x, k)
-                                    un = calc_uncertainty(expected_p, method=self._uncertainty_measure, alpha=self._alpha)
+                                    un = calc_uncertainty(expected_p, method=self._uncertainty_measure,
+                                                          alpha=self._alpha)
                                     saved[c] = un
                                 else:
                                     un = saved[c]
