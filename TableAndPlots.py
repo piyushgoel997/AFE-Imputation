@@ -172,25 +172,22 @@ for f in nn_results.keys():
 
 acc = []
 auc = []
-uncert = []
 for r in nn_results.values():
-    acc.append(r[1:5] + r[6:10])
-    auc.append(r[11:15] + r[16:20])
-    uncert.append(r[21:25] + r[26:30])
+    acc.append(r[1:6] + r[7:12])
+    auc.append(r[13:18] + r[19:24])
 
 
 def make_boxplot(a, name):
-    plt.boxplot(x=np.array(a)[:, :4])
-    plt.xticks([1, 2, 3, 4], ["RS", "LEU_1", "LEU_2", "LEU_3"])
+    plt.boxplot(x=np.array(a)[:, :5])
+    plt.xticks([1, 2, 3, 4, 5], ["RS", "FR", "Con.", "Var.", "Ent."])
     plt.title(name + " (Complete Data)")
     plt.show()
 
-    plt.boxplot(x=np.array(a)[:, 4:])
-    plt.xticks([1, 2, 3, 4], ["RS", "LEU_1", "LEU_2", "LEU_3"])
+    plt.boxplot(x=np.array(a)[:, 5:])
+    plt.xticks([1, 2, 3, 4, 5], ["RS", "FR", "Con.", "Var.", "Ent."])
     plt.title(name + " (Incomplete Data)")
     plt.show()
 
 
 make_boxplot(acc, "Accuracy")
 make_boxplot(auc, "AU-ROC")
-make_boxplot(uncert, "Uncertainty")
