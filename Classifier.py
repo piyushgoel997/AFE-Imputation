@@ -59,10 +59,10 @@ class Classifier:
                     next_features.append(0)
         elif method == "feature_importance":
             next_features = [0] * X.shape[0]
-            for x in X:
+            for i in range(X.shape[0]):
                 for f in self.feature_importance:
-                    if np.isnan(x[f]):
-                        next_features[-1] = f
+                    if np.isnan(X[i, f]):
+                        next_features[i] = f
                         break
         elif method == "leu":
             expected_uncert_matrix = self._num_imputers * np.ones(X.shape)
