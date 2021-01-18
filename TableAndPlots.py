@@ -23,6 +23,14 @@ priors = {'abalone': 0.5017955470433325, 'adult': 0.7607182343065395, 'avila': 0
           'spambase': 0.6059552271245381, 'statlog-is': 0.5714285714285714, 'statlog-ls': 0.5409999999999999,
           'wine': 0.6330614129598277}
 
+names = {'abalone': "Abalone", 'adult': "Adult", 'avila': "Avila", 'bank': "Bank Marketing",
+         'biodeg': "QSAR Biodegradation", 'cardiotocography': "Cardiotocography", 'car': "Car Evaluation",
+         'credit': "default of credit card clients", 'drug': "Drug consumption", 'faults': "Steel Plates Faults",
+         'frogs': "Anuran Calls (MFCCs)", 'mushroom': "Mushroom", 'obesity': "Obesity*",
+         'online': "Online Shoppers Purchasing Intention", 'phishing': "Website Phishing", 'shill': "Shill Bidding",
+         'spambase': "Spambase", 'statlog-is': "Statlog (Image Segmentation)",
+         'statlog-ls': "Statlog (Landsat Satellite)", 'wine': "Wine Quality"}
+
 # path = "data"
 # features = {}
 # for f in listdir(path):
@@ -56,13 +64,11 @@ nn_results = {}
 dt_results = {}
 
 for d in [x.split("_")[0] for x in results.keys()]:
-    # acc (complete[0-5], incomplete[5-10])
-    # auc (complete[10-15], incomplete[15-20])
-    # uncert (complete[20-25], incomplete[25-30])
-    # NOPE - sampling time (complete[30-35], incomplete[35-40])
-    # complete acc[40], complete auc[41], prior[42]
-    nn_results[d] = [0] * 33
-    dt_results[d] = [0] * 33
+    # acc (complete[0-6], incomplete[6-12])
+    # auc (complete[12-18], incomplete[18-24])
+    # complete acc[25], complete auc[26]
+    nn_results[d] = [0] * 27
+    dt_results[d] = [0] * 27
 
 for f, r in results.items():
     dn = f.split("_")[0]
@@ -73,21 +79,23 @@ for f, r in results.items():
     else:
         arr = dt_results[dn]
 
-    # for acc, auc, uncert, sampling times
-    for k in range(3):
+    # for acc, auc
+    for k in range(2):
         # for complete and incomplete
-        for i, j in [(0, 0), (5, 3)]:
+        for i, j in [(0, 0), (6, 3)]:
             a = r[k][percentage_index]
-            arr[10 * k + 0 + i] += a[2 + j]
-            arr[10 * k + 1 + i] += a[0 + j] - a[2 + j]
-            if um == "conf":
-                arr[10 * k + 2 + i] = a[1 + j] - a[2 + j]
+            arr[12 * k + 0 + i] += a[2 + j]
+            arr[12 * k + 1 + i] += a[0 + j] - a[2 + j]
+            if um == "b2":
+                arr[12 * k + 2 + i] = a[1 + j] - a[2 + j]
+            elif um == "conf":
+                arr[12 * k + 3 + i] = a[1 + j] - a[2 + j]
             elif um == "va":
-                arr[10 * k + 3 + i] = a[1 + j] - a[2 + j]
+                arr[12 * k + 4 + i] = a[1 + j] - a[2 + j]
             else:  # e
-                arr[10 * k + 4 + i] = a[1 + j] - a[2 + j]
-    arr[30] += r[4]
-    arr[31] += r[5]
+                arr[12 * k + 5 + i] = a[1 + j] - a[2 + j]
+    arr[25] += r[4]
+    arr[26] += r[5]
     if clf == "nn":
         nn_results[dn] = arr
     else:
@@ -95,23 +103,20 @@ for f, r in results.items():
 
 for f in nn_results.keys():
     # normalize no sampling and random sampling
-    for k in range(6):
-        nn_results[f][5 * k + 0] /= 3
-        nn_results[f][5 * k + 1] /= 3
-        dt_results[f][5 * k + 0] /= 3
-        dt_results[f][5 * k + 1] /= 3
+    for k in range(4):
+        nn_results[f][6 * k + 0] /= 3
+        nn_results[f][6 * k + 1] /= 3
+        dt_results[f][6 * k + 0] /= 3
+        dt_results[f][6 * k + 1] /= 3
     # normalize complete acc, complete auc, prior
     for k in range(1, 4):
         nn_results[f][-k] /= 3
         dt_results[f][-k] /= 3
-    # make the uncert thing from increase in uncert to decrease in uncert
-    # for k in range(20, 30):
-    #     nn_results[f][k] *= -1
-    #     dt_results[f][k] *= -1
 
-# import pandas as pd
-#
-# df = pd.DataFrame.from_dict(nn_results, orient='index')
+import pandas as pd
+
+df = pd.DataFrame.from_dict(nn_results, orient='index')
+
 
 # \multicolumn{2}{c}{wine} & & \multirow{2}{*}{.839} & .649 & .039 & .048 & .067 & .059 & & \multirow{2}{*}{.772} & .636 & .023 & .043 & .044 & .048 \\
 # (.633) & (12) & & & .629 & .018 & .021 & .018 & .007 & & & .621 & .041 & .023 & .036 & .042 \\
@@ -126,23 +131,42 @@ def strip_str(x, sig_figs=3):
     return out
 
 
-for f, d in nn_results.items():
-    row = "\\multicolumn{2}{c}{" + f + "} & & \\multirow{2}{*}{" + strip_str(d[-2]) + "}"
-    for x in d[10:15]:
+# for obesity add {Obesity* = Estimation of obesity levels based on eating habits and physical condition} to the caption
+# for wine add {Wine Quality* = The wine quality data sets for white and red wines are combine by taking the color of the wine as an extra attribute}
+def print_row(f, d, first):
+    if first:
+        row = "& & \\multirow{2}{*}{nn} & &"
+    else:
+        row = "(" + strip_str(priors[f]) + ") & (" + str(features[f]) + ") & \\multirow{2}{*}{rf} & &"
+    row += "\\multirow{2}{*}{" + strip_str(d[-1]) + "}"
+    for x in d[12:18]:
         row += " & " + strip_str(x)
-    row += " & & \\multirow{2}{*}{" + strip_str(d[-3]) + "}"
-    for x in d[0:5]:
+    row += " & & \\multirow{2}{*}{" + strip_str(d[-2]) + "}"
+    for x in d[0:6]:
         row += " & " + strip_str(x)
 
     row += " \\\\\n"
-    row += "(" + strip_str(priors[f]) + ") & (" + str(features[f]) + ") & &"
-    for x in d[5:10]:
+    if first:
+        row += "\multicolumn{2}{c}{" + names[f] + "}  & & &"
+    else:
+        row += "& & & &"
+    for x in d[18:24]:
         row += " & " + strip_str(x)
     row += " & &"
-    for x in d[15:20]:
+    for x in d[6:12]:
         row += " & " + strip_str(x)
-    row += " \\\\\n\\hline"
+    row += " \\\\\n"
+    if not first:
+        row += "\\hline"
+    else:
+        row += "\\cmidrule(lr){5-11} \\cmidrule(lr){13-19}"
     print(row)
+
+
+for f in nn_results.keys():
+    print_row(f, nn_results[f], True)
+    print_row(f, dt_results[f], False)
+    print()
 
 # box plots
 
