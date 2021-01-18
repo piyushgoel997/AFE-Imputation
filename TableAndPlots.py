@@ -7,10 +7,33 @@ import numpy as np
 
 percentage_index = 2  # for 75 %
 
-priors = {"abalone": 0.547282739, "adult": 0.66666, "avila": 0.638376384, "bank": 0.883015195, "biodeg": 0.66256,
-          "cardiotocography": 0.59172, "car": 0.740162037, "drug": 0.529973475, "faults": 0.65791, "frogs": 0.68965,
-          "mushroom": 0.517971443, "obesity": 0.597820938, "phishing": 0.51885, "shill": 0.89321,
-          "spambase": 0.60596, "statlog-is": 0.57143, "statlog-ls": 0.5455, "wine": 0.63306}
+# path = "data"
+# priors = {}
+# for f in listdir(path):
+#     if isfile(join(path, f)) and "_cat." not in f:
+#         data = np.load(str(join(path, f)))
+#         priors[str(f).split("_")[0]] = max(np.sum(data[:, -1])/len(data), 1 - np.sum(data[:, -1])/len(data))
+
+priors = {'abalone': 0.5017955470433325, 'adult': 0.7607182343065395, 'avila': 0.5598792351559879,
+          'bank': 0.8830151954170445, 'biodeg': 0.6625592417061612, 'cardiotocography': 0.5159924741298212,
+          'car': 0.7002314814814814, 'credit': 0.7787999999999999, 'drug': 0.529973474801061,
+          'faults': 0.6532715095311695, 'frogs': 0.6143154968728284, 'mushroom': 0.517971442639094,
+          'obesity': 0.5978209379441023, 'online': 0.8452554744525548, 'phishing': 0.5188470066518847,
+          'sat': 0.5585081585081585, 'Sensorless': 0.5454545454545454, 'shill': 0.8932130991931656,
+          'spambase': 0.6059552271245381, 'statlog-is': 0.5714285714285714, 'statlog-ls': 0.5409999999999999,
+          'wine': 0.6330614129598277}
+
+# path = "data"
+# features = {}
+# for f in listdir(path):
+#     if isfile(join(path, f)) and "_cat." not in f:
+#         data = np.load(str(join(path, f)))
+#         features[str(f).split("_")[0]] = data.shape[1] - 1
+
+features = {'abalone': 8, 'adult': 14, 'avila': 10, 'bank': 16, 'biodeg': 41, 'cardiotocography': 24, 'car': 6,
+            'credit': 23, 'drug': 12, 'faults': 27, 'frogs': 22, 'mushroom': 21, 'obesity': 16, 'online': 17,
+            'phishing': 9, 'sat': 36, 'Sensorless': 48, 'shill': 9, 'spambase': 57, 'statlog-is': 18, 'statlog-ls': 36,
+            'wine': 12}
 
 directory = "saved_results"
 results = {}
@@ -90,9 +113,36 @@ for f in nn_results.keys():
 #
 # df = pd.DataFrame.from_dict(nn_results, orient='index')
 
-# TODO now just print rows according to the table, add prior information first.
-print(nn_results)
-print(dt_results)
+# \multicolumn{2}{c}{wine} & & \multirow{2}{*}{.839} & .649 & .039 & .048 & .067 & .059 & & \multirow{2}{*}{.772} & .636 & .023 & .043 & .044 & .048 \\
+# (.633) & (12) & & & .629 & .018 & .021 & .018 & .007 & & & .621 & .041 & .023 & .036 & .042 \\
+# \hline
+
+
+def strip_str(x, sig_figs=3):
+    x = str(float(x)) + "00000000"
+    out = "." + x.split(".")[1][:sig_figs]
+    if x[0] == '-':
+        out = "-" + out
+    return out
+
+
+for f, d in nn_results.items():
+    row = "\\multicolumn{2}{c}{" + f + "} & & \\multirow{2}{*}{" + strip_str(d[-2]) + "}"
+    for x in d[10:15]:
+        row += " & " + strip_str(x)
+    row += " & & \\multirow{2}{*}{" + strip_str(d[-3]) + "}"
+    for x in d[0:5]:
+        row += " & " + strip_str(x)
+
+    row += " \\\\\n"
+    row += "(" + strip_str(priors[f]) + ") & (" + str(features[f]) + ") & &"
+    for x in d[5:10]:
+        row += " & " + strip_str(x)
+    row += " & &"
+    for x in d[15:20]:
+        row += " & " + strip_str(x)
+    row += " \\\\\n\\hline"
+    print(row)
 
 # box plots
 
