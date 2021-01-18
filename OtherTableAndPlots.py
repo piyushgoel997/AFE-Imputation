@@ -114,15 +114,12 @@ for r in dt_results.values():
 
 def make_plot(b, name):
     mean = np.mean(b, axis=0)
-    print("MEAN", mean)
     std = np.std(b, axis=0)
-    print("STD", std)
-    ci = 1.96 * std / mean  # TODO
-    print("CI", ci)
+    ci = std  # TODO
     # complete and incomplete
     for k in range(2):
         x = [1, 2, 3]
-        for i, color, um in [(0, 'r', "Random"), (1, 'g', "LEU_1")]: #, (2, 'b', "LEU_2"), (3, 'y', "LEU_3")]:
+        for i, color, um in [(0, 'r', "Random"), (1, 'g', "LEU_1"), (2, 'b', "LEU_2"), (3, 'y', "LEU_3")]:
             plt.plot(x, mean[12 * k + 3 * i + 0:12 * k + 3 * i + 3], color=color, label=um)
             plt.fill_between(x, mean[12 * k + 3 * i + 0:12 * k + 3 * i + 3] - ci[12 * k + 3 * i + 0:12 * k + 3 * i + 3],
                              mean[12 * k + 3 * i + 0:12 * k + 3 * i + 3] + ci[12 * k + 3 * i + 0:12 * k + 3 * i + 3],
@@ -135,5 +132,5 @@ def make_plot(b, name):
         plt.show()
 
 
-print("ACC", 100*np.array(acc))
-make_plot(100*np.array(acc), "Accuracy")
+make_plot(np.array(acc), "Accuracy")
+make_plot(np.array(auc), "AUC")
